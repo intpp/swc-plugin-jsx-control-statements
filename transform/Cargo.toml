@@ -1,0 +1,14 @@
+[package]
+name = "jsx_control_statements"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+easy-error = "1.0.0"
+serde = "1"
+swc_core = { version = "0.69.*", features = ["ecma_plugin_transform"] }
+tracing = {version = "0.1.37", features = ["release_max_level_off"]}
+
+[dev-dependencies]
+testing = "0.31.40"
+swc_core = { version = "0.69.15", features = ["testing_transform", "ecma_parser"] }

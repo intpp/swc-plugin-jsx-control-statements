@@ -1,0 +1,22 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Night toolchain
+      run: rustup default nightly
+    - name: Run tests (Main)
+      run: cargo test --verbose
+    - name: Run tests (Transformer)
+      run: cd transform && cargo test --verbose

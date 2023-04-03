@@ -1,0 +1,8 @@
+
+  x <Else /> should be self-closing!
+    ,-[input.js:8:1]
+  8 |                     <span>left-side</span>
+  9 |                     <Else>
+    :                     ^^^^^^
+ 10 |                     <span>right-side</span>
+    `----
