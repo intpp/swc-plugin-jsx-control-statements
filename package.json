@@ -1,7 +1,20 @@
 {
   "name": "swc-plugin-jsx-control-statements",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SWC plugin for jsx-control-statements",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intpp/swc-plugin-jsx-control-statements"
+  },
+  "keywords": [
+    "react",
+    "jsx",
+    "if",
+    "else",
+    "swc",
+    "swc-plugin",
+    "react-component"
+  ],
   "main": "swc_plugin_jsx_control_statements.wasm",
   "scripts": {
     "prepublishOnly": "cargo build-wasi --release",
