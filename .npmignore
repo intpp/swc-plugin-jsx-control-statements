@@ -3,6 +3,7 @@
 .vscode/
 .github/
 .idea/
+src/
 target/
 transform/
 .gitignore
