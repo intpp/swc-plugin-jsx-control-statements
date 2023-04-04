@@ -1,6 +1,6 @@
 {
   "name": "swc-plugin-jsx-control-statements",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "SWC plugin for jsx-control-statements",
   "main": "swc_plugin_jsx_control_statements.wasm",
   "scripts": {
