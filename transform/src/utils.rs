@@ -1,7 +1,6 @@
 use swc_core::common::errors::HANDLER;
-use swc_core::common::Span;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::Bool;
+use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::Expr;
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::ast::JSXAttr;
@@ -9,6 +8,7 @@ use swc_core::ecma::ast::JSXAttrName;
 use swc_core::ecma::ast::JSXAttrOrSpread;
 use swc_core::ecma::ast::JSXAttrValue;
 use swc_core::ecma::ast::JSXClosingFragment;
+use swc_core::ecma::ast::JSXElement;
 use swc_core::ecma::ast::JSXElementChild;
 use swc_core::ecma::ast::JSXElementName;
 use swc_core::ecma::ast::JSXExpr;
@@ -88,17 +88,24 @@ pub fn display_error(span: Span, message: &str) {
     error!(message);
 }
 
-pub fn get_condition_expression(attributes: &[JSXAttrOrSpread]) -> Expr {
-    attributes
+pub fn get_condition_expression(jsx_element: &JSXElement) -> Expr {
+    jsx_element
+        .opening
+        .attrs
         .iter()
         .find(|attr| {
             if let JSXAttrOrSpread::JSXAttr(JSXAttr {
-                name: JSXAttrName::Ident(Ident { sym, .. }),
+                name: JSXAttrName::Ident(Ident { sym, span, .. }),
                 ..
             }) = attr
             {
                 if sym == "condition" {
                     return true;
+                } else {
+                    display_error(
+                        *span,
+                        format!("Only \"condition\" attribute allowed, got: \"{}\".", sym).as_str(),
+                    );
                 }
             }
 
@@ -110,31 +117,35 @@ pub fn get_condition_expression(attributes: &[JSXAttrOrSpread]) -> Expr {
                     let JSXExprContainer { expr, .. } = value;
 
                     match expr {
-                        JSXExpr::Expr(value) => match &**value {
-                            Expr::Lit(value) => match value {
-                                Lit::Bool(Bool { value, .. }) => {
-                                    Expr::Lit(Lit::Bool((*value).into()))
-                                }
-                                Lit::Null(Null { .. }) => Expr::Lit(Lit::Bool(false.into())),
-                                _ => Expr::Lit(Lit::Bool(true.into())),
-                            },
-                            Expr::Ident(Ident { sym, optional, .. }) => Expr::Ident(Ident {
-                                sym: (*sym).clone(),
-                                span: DUMMY_SP,
-                                optional: *optional,
-                            }),
-                            Expr::Bin(value) => Expr::Bin((*value).clone()),
-                            Expr::Member(value) => Expr::Member((*value).clone()),
-                            _ => Expr::Lit(Lit::Bool(true.into())),
-                        },
+                        JSXExpr::Expr(value) => (**value).clone(),
                         _ => Expr::Lit(Lit::Bool(false.into())),
                     }
                 }
                 _ => Expr::Lit(Lit::Bool(false.into())),
             },
-            _ => Expr::Lit(Lit::Bool(true.into())),
+            JSXAttrOrSpread::SpreadElement(value) => {
+                display_error(
+                    value.dot3_token.span(),
+                    "Spread is invalid for the value of a condition!",
+                );
+
+                Expr::Lit(Lit::Bool(false.into()))
+            }
         })
-        .unwrap_or_else(|| Expr::Lit(Lit::Bool(true.into()))) // TODO: throw an error because there is no "condition" prop
+        .unwrap_or_else(|| {
+            let element_name = get_jsx_element_name(&jsx_element.opening.name);
+
+            display_error(
+                jsx_element.opening.span,
+                format!(
+                    "Attribute \"condition\" is required for the <{}> tag!",
+                    element_name
+                )
+                .as_str(),
+            );
+
+            Expr::Lit(Lit::Bool(false.into()))
+        })
 }
 
 pub fn get_jsx_element_name(jsx_element_name: &JSXElementName) -> &str {

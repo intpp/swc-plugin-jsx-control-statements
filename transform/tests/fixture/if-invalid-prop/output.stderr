@@ -1,0 +1,16 @@
+
+  x Only "condition" attribute allowed, got: "blablabla".
+   ,-[input.js:6:1]
+ 6 |             <div>
+ 7 |                 <If blablabla={true}>
+   :                     ^^^^^^^^^
+ 8 |                 </If>
+   `----
+
+  x Attribute "condition" is required for the <If> tag!
+   ,-[input.js:6:1]
+ 6 |             <div>
+ 7 |                 <If blablabla={true}>
+   :                 ^^^^^^^^^^^^^^^^^^^^^
+ 8 |                 </If>
+   `----

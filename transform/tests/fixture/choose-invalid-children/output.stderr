@@ -1,0 +1,16 @@
+
+  x <Condition /> tag can contain only <When /> and <Otherwise /> tags, got: <Modal>.
+   ,-[input.js:7:1]
+ 7 |         <Choose>
+ 8 |           <Modal condition={true}/>
+   :           ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |         </Choose>
+   `----
+
+  x <Condition /> tag should contain at least one <When /> tag.
+   ,-[input.js:6:1]
+ 6 |       <div>
+ 7 |         <Choose>
+   :         ^^^^^^^^
+ 8 |           <Modal condition={true}/>
+   `----

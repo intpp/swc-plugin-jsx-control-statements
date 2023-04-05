@@ -4,7 +4,8 @@ module.exports = class extends React.Component {
     render() {
         return (
             <div>
-                <If condition={true}>
+                <If condition="">
+                    <span>IfBlock</span>
                 </If>
             </div>
         );

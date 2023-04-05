@@ -30,6 +30,15 @@ fn parse_choose_jsx_element(jsx_element: &JSXElement) -> (Vec<(Expr, Expr)>, Exp
 
     let mut otherwise_found = false;
 
+    if jsx_element.children.is_empty() {
+        display_error(
+            jsx_element.opening.span,
+            "<Condition /> tag should contain at least one <When /> tag.",
+        );
+
+        return (cons, alt);
+    }
+
     for child in jsx_element.children.iter().rev() {
         match child {
             JSXElementChild::JSXText(JSXText { value, .. }) => {
@@ -45,9 +54,9 @@ fn parse_choose_jsx_element(jsx_element: &JSXElement) -> (Vec<(Expr, Expr)>, Exp
                 }
             }
             JSXElementChild::JSXElement(jsx_element) => {
-                let tag_name = get_jsx_element_name(&jsx_element.opening.name);
+                let element_name = get_jsx_element_name(&jsx_element.opening.name);
 
-                if tag_name == "Otherwise" {
+                if element_name == "Otherwise" {
                     if otherwise_found {
                         display_error(
                             jsx_element.opening.span,
@@ -72,11 +81,16 @@ fn parse_choose_jsx_element(jsx_element: &JSXElement) -> (Vec<(Expr, Expr)>, Exp
                             "<Otherwise /> tag should be last in the conditions.",
                         );
                     }
-                } else if tag_name == "When" {
+                } else if element_name == "When" {
                     cons.push((
-                        get_condition_expression(&jsx_element.opening.attrs),
+                        get_condition_expression(jsx_element),
                         convert_children_to_expression(clone_children(&jsx_element.children)),
                     ));
+                } else {
+                    display_error(
+                        jsx_element.opening.span,
+                        format!("<Condition /> tag can contain only <When /> and <Otherwise /> tags, got: <{}>.", element_name).as_str(),
+                    );
                 }
             }
             _ => {

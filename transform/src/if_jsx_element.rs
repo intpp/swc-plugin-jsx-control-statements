@@ -7,10 +7,10 @@ use crate::utils::{
 };
 
 pub fn convert_if_jsx_element(jsx_element: &JSXElement) -> Expr {
-    let (cons, alt) = parse_if_jsx_element(&jsx_element);
+    let (cons, alt) = parse_if_jsx_element(jsx_element);
 
     Expr::Cond(CondExpr {
-        test: Box::new(get_condition_expression(&jsx_element.opening.attrs)),
+        test: Box::new(get_condition_expression(&jsx_element)),
         cons: Box::new(cons),
         alt: Box::new(alt),
         span: DUMMY_SP,

@@ -1,0 +1,8 @@
+
+  x Attribute "condition" is required for the <If> tag!
+   ,-[input.js:6:1]
+ 6 |             <div>
+ 7 |                 <If>
+   :                 ^^^^
+ 8 |                     <span>IfBlock</span>
+   `----
