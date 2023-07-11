@@ -20,7 +20,7 @@ fn syntax() -> Syntax {
     })
 }
 
-#[testing::fixture("tests/fixture/choose-nested-simple/input.js")]
+#[testing::fixture("tests/fixture/**/input.js")]
 fn jsx_control_statements_fixture(input: PathBuf) {
     let output = input.parent().unwrap().join("output.js");
 
