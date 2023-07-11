@@ -3,7 +3,13 @@ module.exports = class extends React.Component {
     render() {
         return <div>
 
-                {this.props.ifCondition ? <><span>test</span>{this.props.nestedIfCondition ? <span>If-If</span> : <span>If-Else</span>}</> : <><span>test2</span>{this.props.nestedIfCondition ? <span>Else-If</span> : <span>Else-Else</span>}</>}
+                {this.props.ifCondition ? [
+            <span key="0">test</span>,
+            this.props.nestedIfCondition ? <span key="1">If-If</span> : <span key="1">If-Else</span>
+        ] : [
+            <span key="0">test2</span>,
+            this.props.nestedIfCondition ? <span key="1">Else-If</span> : <span key="1">Else-Else</span>
+        ]}
 
             </div>;
     }

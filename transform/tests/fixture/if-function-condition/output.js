@@ -1,5 +1,5 @@
 import React from 'react';
-export default (({ shouldDisplay  })=>{
+export default (({ shouldDisplay })=>{
     return <div>
 
             {shouldDisplay() ? "Tada!" : null}
