@@ -1,7 +1,9 @@
 use swc_core::common::Spanned;
 use swc_core::common::DUMMY_SP;
+use swc_core::ecma::ast::ArrayLit;
 use swc_core::ecma::ast::CondExpr;
 use swc_core::ecma::ast::Expr;
+use swc_core::ecma::ast::ExprOrSpread;
 use swc_core::ecma::ast::Ident;
 use swc_core::ecma::ast::JSXAttr;
 use swc_core::ecma::ast::JSXAttrName;
@@ -16,6 +18,7 @@ use swc_core::ecma::ast::JSXNamespacedName;
 use swc_core::ecma::ast::Lit;
 use swc_core::ecma::ast::SpreadElement;
 use swc_core::ecma::ast::Str;
+use tracing::debug;
 
 use crate::utils::playthings::display_error;
 
@@ -187,127 +190,62 @@ pub fn set_jsx_element_attribute(
     }
 }
 
-/*pub fn set_key_for_branch(branch: &mut Box<Expr>, key_value: String, rewrite_value: bool) {
-    match &mut **branch {
+pub fn set_key_attribute_for_expr(
+    expr: &mut Expr,
+    key_attribute_value: String,
+    rewrite_value: bool,
+) {
+    match expr {
         Expr::JSXElement(jsx_element) => {
-            set_jsx_element_attribute(jsx_element, "key", key_value, rewrite_value);
+            set_jsx_element_attribute(jsx_element, "key", key_attribute_value, rewrite_value);
         }
         Expr::Array(ArrayLit { elems, .. }) => {
             for (index, elem) in elems.iter_mut().enumerate() {
                 if let Some(ExprOrSpread { expr, .. }) = elem {
-                    match &mut **expr {
-                        Expr::JSXElement(jsx_element) => {
-                            debug!("Trying to set key for an item");
+                    if let Expr::JSXElement(jsx_element) = &mut **expr {
+                        debug!("Trying to set key for an item");
 
-                            set_jsx_element_attribute(
-                                jsx_element,
-                                "key",
-                                build_key_attribute_value(&key_value, index),
-                                rewrite_value,
-                            );
-                        }
-                        _ => {}
+                        set_jsx_element_attribute(
+                            jsx_element,
+                            "key",
+                            build_key_attribute_value(&key_attribute_value, index),
+                            rewrite_value,
+                        );
                     }
                 }
             }
         }
+        Expr::Cond(CondExpr { cons, alt, .. }) => {
+            set_key_attribute_for_expr(cons, key_attribute_value.clone(), rewrite_value);
+            set_key_attribute_for_expr(alt, key_attribute_value.clone(), rewrite_value);
+        }
         _ => {}
     }
-}*/
+}
 
 pub fn set_jsx_child_element_key_attribute(
     jsx_element_child: &mut JSXElementChild,
-    key_attribute: String,
+    key_attribute_value: String,
 ) {
-    if key_attribute.is_empty() {
+    if key_attribute_value.is_empty() {
         return;
     }
 
     match jsx_element_child {
         JSXElementChild::JSXElement(value) => {
-            set_jsx_element_attribute(value, "key", key_attribute.clone(), false);
+            set_jsx_element_attribute(value, "key", key_attribute_value.clone(), false);
         }
         JSXElementChild::JSXExprContainer(JSXExprContainer {
             expr: JSXExpr::Expr(expr),
             ..
         }) => {
-            match &mut **expr {
-                Expr::Cond(CondExpr { cons, alt, .. }) => {
-                    debug("Checking branches");
+            if let Expr::Cond(CondExpr { cons, alt, .. }) = &mut **expr {
+                debug!("Checking branches");
 
-                    // set_key_for_branch(cons, key.clone(), true);
-                    // set_key_for_branch(alt, key.clone(), true);
-
-                    /*if let Expr::Array(ArrayLit { elems, .. }) = &mut **cons {
-                        for elem in elems.iter_mut() {
-                            if let Some(ExprOrSpread { expr, .. }) = elem {
-                                match &mut **expr {
-                                    Expr::JSXElement(jsx_element) => {
-                                        set_key_attribute(
-                                            jsx_element,
-                                            key.clone(),
-                                            false,
-                                        );
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }*/
-                }
-                _ => {}
+                set_key_attribute_for_expr(cons, key_attribute_value.clone(), true);
+                set_key_attribute_for_expr(alt, key_attribute_value.clone(), true);
             };
         }
+        _ => {}
     }
-
-    // go deep until first jsx element or array of elements (recursive until jsx element or nothing) or jsx expression (recursive run)
-    // stop if we reached
-
-    /*
-
-
-                   if let JSXElementChild::JSXElement(value) = child {
-                       let mut jsx_element: JSXElement = (**value).clone();
-
-                       set_jsx_element_attribute(&mut jsx_element, "key", key.clone(), false);
-
-                       return Some(ExprOrSpread {
-                           spread: None,
-                           expr: Box::new(Expr::JSXElement(Box::new(jsx_element))),
-                       });
-                   } else if let JSXElementChild::JSXExprContainer(JSXExprContainer {
-                       expr: JSXExpr::Expr(expr),
-                       ..
-                   }) = child
-                   {
-                       debug("JSXExpressionContainer found");
-
-                       match &mut **expr {
-                           Expr::Cond(CondExpr { cons, alt, .. }) => {
-                               debug("Checking branches");
-
-                               set_key_for_branch(cons, key.clone(), true);
-                               set_key_for_branch(alt, key.clone(), true);
-
-                               /*if let Expr::Array(ArrayLit { elems, .. }) = &mut **cons {
-                                   for elem in elems.iter_mut() {
-                                       if let Some(ExprOrSpread { expr, .. }) = elem {
-                                           match &mut **expr {
-                                               Expr::JSXElement(jsx_element) => {
-                                                   set_key_attribute(
-                                                       jsx_element,
-                                                       key.clone(),
-                                                       false,
-                                                   );
-                                               }
-                                               _ => {}
-                                           }
-                                       }
-                                   }
-                               }*/
-                           }
-                           _ => {}
-                       };
-                   }
-    */
 }
