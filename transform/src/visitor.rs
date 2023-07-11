@@ -5,10 +5,9 @@ use swc_core::ecma::{
 };
 use tracing::debug;
 
-use crate::choose_jsx_element::convert_choose_jsx_element;
-use crate::if_jsx_element::convert_if_jsx_element;
-use crate::utils::{get_jsx_element_name, wrap_by_child_jsx_expr_container};
-use crate::with_jsx_element::convert_with_jsx_element;
+use crate::tags::{choose_tag, if_tag, with_tag};
+use crate::utils::attributes::get_jsx_element_name;
+use crate::utils::elements::wrap_by_child_jsx_expr_container;
 
 pub fn transform_jsx_control_statements() -> impl Fold {
     JSXControlStatements
@@ -23,17 +22,17 @@ impl Fold for JSXControlStatements {
         let expr = expr.fold_children_with(self);
 
         match expr {
-            Expr::JSXElement(jsx_element) => {
-                let tag_name = get_jsx_element_name(&jsx_element.opening.name);
+            Expr::JSXElement(mut jsx_element) => {
+                let element_name = get_jsx_element_name(&jsx_element.opening.name);
 
-                debug!("fold_expr::Expr::JSXElement::tag_name = {}", tag_name);
+                debug!("fold_expr::Expr::JSXElement::tag_name = {}", element_name);
 
-                match tag_name {
-                    "If" => convert_if_jsx_element(&jsx_element),
-                    "Choose" => convert_choose_jsx_element(&jsx_element),
+                match element_name {
+                    "If" => if_tag::convert_jsx_element(&mut jsx_element),
+                    "Choose" => choose_tag::convert_jsx_element(&mut jsx_element),
                     _ => {
-                        if tag_name == "With" {
-                            convert_with_jsx_element(&jsx_element);
+                        if element_name == "With" {
+                            with_tag::convert_with_jsx_element(&jsx_element);
                         }
 
                         Expr::JSXElement(jsx_element)
@@ -49,23 +48,25 @@ impl Fold for JSXControlStatements {
 
         match element {
             JSXElementChild::JSXElement(value) => {
-                let jsx_element = *value;
+                let mut jsx_element = *value;
 
-                let tag_name = get_jsx_element_name(&jsx_element.opening.name);
+                let element_name = get_jsx_element_name(&jsx_element.opening.name);
 
                 debug!(
                     "fold_jsx_element_child::JSXElementChild::JSXElement::tag_name = {}",
-                    tag_name
+                    element_name
                 );
 
-                match tag_name {
-                    "If" => wrap_by_child_jsx_expr_container(convert_if_jsx_element(&jsx_element)),
-                    "Choose" => {
-                        wrap_by_child_jsx_expr_container(convert_choose_jsx_element(&jsx_element))
-                    }
+                match element_name {
+                    "If" => wrap_by_child_jsx_expr_container(if_tag::convert_jsx_element(
+                        &mut jsx_element,
+                    )),
+                    "Choose" => wrap_by_child_jsx_expr_container(choose_tag::convert_jsx_element(
+                        &mut jsx_element,
+                    )),
                     _ => {
-                        if tag_name == "With" {
-                            convert_with_jsx_element(&jsx_element);
+                        if element_name == "With" {
+                            with_tag::convert_with_jsx_element(&jsx_element);
                         }
 
                         JSXElementChild::JSXElement(Box::new(jsx_element))

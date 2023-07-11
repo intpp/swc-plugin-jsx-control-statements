@@ -1,6 +1,6 @@
 use swc_core::ecma::ast::JSXElement;
 
-use crate::utils::display_error;
+use crate::utils::playthings::display_error;
 
 pub fn convert_with_jsx_element(jsx_element: &JSXElement) {
     display_error(

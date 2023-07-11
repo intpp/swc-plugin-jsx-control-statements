@@ -2,12 +2,14 @@ use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::Expr;
 use swc_core::ecma::ast::{CondExpr, JSXElement, JSXElementChild, JSXText, Lit, Null};
 
-use crate::utils::{
-    clone_children, convert_children_to_expression, display_error, get_condition_expression,
-    get_jsx_element_name,
+use crate::utils::attributes::{
+    get_condition_expression, get_jsx_element_name, get_key_attribute,
+    validate_jsx_control_statement_attributes,
 };
+use crate::utils::elements::convert_children_to_expression;
+use crate::utils::playthings::display_error;
 
-pub fn convert_choose_jsx_element(jsx_element: &JSXElement) -> Expr {
+pub fn convert_jsx_element(jsx_element: &mut JSXElement) -> Expr {
     let (cons, alt) = parse_choose_jsx_element(jsx_element);
 
     let mut condition_expression = alt;
@@ -24,7 +26,9 @@ pub fn convert_choose_jsx_element(jsx_element: &JSXElement) -> Expr {
     condition_expression
 }
 
-fn parse_choose_jsx_element(jsx_element: &JSXElement) -> (Vec<(Expr, Expr)>, Expr) {
+fn parse_choose_jsx_element(
+    jsx_element: &mut swc_core::ecma::ast::JSXElement,
+) -> (Vec<(Expr, Expr)>, Expr) {
     let mut cons: Vec<(Expr, Expr)> = Vec::new();
     let mut alt = Expr::Lit(Lit::Null(Null { span: DUMMY_SP }));
 
@@ -39,7 +43,9 @@ fn parse_choose_jsx_element(jsx_element: &JSXElement) -> (Vec<(Expr, Expr)>, Exp
         return (cons, alt);
     }
 
-    for child in jsx_element.children.iter().rev() {
+    let group_key = get_key_attribute(jsx_element);
+
+    for child in jsx_element.children.iter_mut().rev() {
         match child {
             JSXElementChild::JSXText(JSXText { value, .. }) => {
                 let mut value = value.to_string();
@@ -71,9 +77,10 @@ fn parse_choose_jsx_element(jsx_element: &JSXElement) -> (Vec<(Expr, Expr)>, Exp
                                 "<Otherwise /> tag should contain children.",
                             );
                         } else {
-                            alt = convert_children_to_expression(clone_children(
-                                &jsx_element.children,
-                            ));
+                            alt = convert_children_to_expression(
+                                &mut jsx_element.children,
+                                group_key.clone(),
+                            );
                         }
                     } else {
                         display_error(
@@ -82,9 +89,14 @@ fn parse_choose_jsx_element(jsx_element: &JSXElement) -> (Vec<(Expr, Expr)>, Exp
                         );
                     }
                 } else if element_name == "When" {
+                    validate_jsx_control_statement_attributes(jsx_element);
+
                     cons.push((
                         get_condition_expression(jsx_element),
-                        convert_children_to_expression(clone_children(&jsx_element.children)),
+                        convert_children_to_expression(
+                            &mut jsx_element.children,
+                            group_key.clone(),
+                        ),
                     ));
                 } else {
                     display_error(

@@ -1,5 +1,5 @@
 
-  x Only "condition" attribute allowed, got: "blablabla".
+  x Unsupported: "blablabla" for <If>, valid props: "condition" and "key"!
    ,-[input.js:6:1]
  6 |             <div>
  7 |                 <If blablabla={true}>
