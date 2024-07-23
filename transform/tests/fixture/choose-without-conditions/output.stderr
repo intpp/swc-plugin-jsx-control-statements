@@ -1,6 +1,5 @@
-
   x <Condition /> tag should contain at least one <When /> tag.
-   ,-[input.js:6:1]
+   ,-[input.js:7:1]
  6 |       <div>
  7 |         <Choose>
    :         ^^^^^^^^

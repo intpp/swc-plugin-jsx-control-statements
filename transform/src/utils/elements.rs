@@ -19,31 +19,12 @@ pub fn convert_child_to_expression(
     set_jsx_child_element_key_attribute(jsx_element_child, key_attribute.clone());
 
     match jsx_element_child {
+        JSXElementChild::JSXFragment(value) => Expr::JSXFragment((*value).clone()),
         JSXElementChild::JSXElement(value) => Expr::JSXElement(Box::new((**value).clone())),
         JSXElementChild::JSXExprContainer(JSXExprContainer {
             expr: JSXExpr::Expr(expr),
             ..
-        }) => (**expr).clone(), /*match &**expr {
-        /*Expr::Cond(expr) => {
-                debug!("Condition expression, group: {}", key_attribute.clone());
-
-                if !key_attribute.is_empty() {
-                    let mut condition_expression = (*expr).clone();
-
-                    let CondExpr { cons, alt, .. } = &mut condition_expression;
-
-                    debug!("Setting key for branches, {}", key_attribute.clone());
-
-                    set_key_for_branch(cons, key_attribute.clone(), true);
-                    set_key_for_branch(alt, key_attribute.clone(), true);
-
-                    Expr::Cond(condition_expression)
-                } else {
-                    Expr::Cond((*expr).clone())
-                }
-            }*/
-            _ => (**expr).clone(),
-        }*/
+        }) => (**expr).clone(),
         JSXElementChild::JSXText(JSXText { value, .. }) => {
             let mut content = value.to_string();
 
@@ -65,6 +46,11 @@ pub fn convert_children_to_expression(
 ) -> Expr {
     let group_key = group_key.unwrap_or("".to_string());
 
+    debug!(
+        "convert_children_to_expression (length before filter is {})",
+        children.len()
+    );
+
     children.retain(|child| match child {
         JSXElementChild::JSXText(JSXText { value, .. }) => {
             let mut value = value.to_string();
@@ -75,6 +61,11 @@ pub fn convert_children_to_expression(
         }
         _ => true,
     });
+
+    debug!(
+        "convert_children_to_expression (length after filter is {})",
+        children.len()
+    );
 
     match children.len() {
         0 => Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),

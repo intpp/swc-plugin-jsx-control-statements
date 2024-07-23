@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use swc_core::{
     common::{chain, Mark},
     ecma::{
-        parser::{EsConfig, Syntax},
+        parser::{EsSyntax, Syntax},
         transforms::{
             base::resolver,
             testing::{test_fixture, FixtureTestConfig},
@@ -14,7 +14,7 @@ use swc_core::{
 use jsx_control_statements::visitor::transform_jsx_control_statements;
 
 fn syntax() -> Syntax {
-    Syntax::Es(EsConfig {
+    Syntax::Es(EsSyntax {
         jsx: true,
         ..Default::default()
     })
