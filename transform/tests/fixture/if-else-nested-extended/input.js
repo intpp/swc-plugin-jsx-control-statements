@@ -8,14 +8,14 @@ module.exports = class extends React.Component {
                     <span>test</span>
                     <If condition={this.props.nestedIfCondition}>
                         <span>If-If</span>
-                        <Else />
+                        <Else/>
                         <span>If-Else</span>
                     </If>
-                    <Else />
+                    <Else/>
                     <span>test2</span>
                     <If condition={this.props.nestedIfCondition}>
                         <span>Else-If</span>
-                        <Else />
+                        <Else/>
                         <span>Else-Else</span>
                     </If>
                 </If>
