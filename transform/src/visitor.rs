@@ -30,11 +30,8 @@ impl Fold for JSXControlStatements {
                 match element_name {
                     "If" => if_tag::convert_jsx_element(&mut jsx_element),
                     "Choose" => choose_tag::convert_jsx_element(&mut jsx_element),
+                    "With" =>  with_tag::convert_jsx_element(&mut jsx_element),
                     _ => {
-                        if element_name == "With" {
-                            with_tag::convert_with_jsx_element(&jsx_element);
-                        }
-
                         Expr::JSXElement(jsx_element)
                     }
                 }
@@ -64,11 +61,10 @@ impl Fold for JSXControlStatements {
                     "Choose" => wrap_by_child_jsx_expr_container(choose_tag::convert_jsx_element(
                         &mut jsx_element,
                     )),
+                    "With" => wrap_by_child_jsx_expr_container(with_tag::convert_jsx_element(
+                        &mut jsx_element,
+                    )),
                     _ => {
-                        if element_name == "With" {
-                            with_tag::convert_with_jsx_element(&jsx_element);
-                        }
-
                         JSXElementChild::JSXElement(Box::new(jsx_element))
                     }
                 }
