@@ -5,7 +5,7 @@ use swc_core::ecma::{
 };
 use tracing::debug;
 
-use crate::tags::{choose_tag, if_tag, with_tag};
+use crate::tags::{choose_tag, if_tag, with_tag, for_tag};
 use crate::utils::attributes::get_jsx_element_name;
 use crate::utils::elements::wrap_by_child_jsx_expr_container;
 
@@ -30,7 +30,8 @@ impl Fold for JSXControlStatements {
                 match element_name {
                     "If" => if_tag::convert_jsx_element(&mut jsx_element),
                     "Choose" => choose_tag::convert_jsx_element(&mut jsx_element),
-                    "With" =>  with_tag::convert_jsx_element(&mut jsx_element),
+                    "With" => with_tag::convert_jsx_element(&mut jsx_element),
+                    "For" => for_tag::convert_jsx_element(&mut jsx_element),
                     _ => {
                         Expr::JSXElement(jsx_element)
                     }
@@ -62,6 +63,9 @@ impl Fold for JSXControlStatements {
                         &mut jsx_element,
                     )),
                     "With" => wrap_by_child_jsx_expr_container(with_tag::convert_jsx_element(
+                        &mut jsx_element,
+                    )),
+                    "For" => wrap_by_child_jsx_expr_container(for_tag::convert_jsx_element(
                         &mut jsx_element,
                     )),
                     _ => {

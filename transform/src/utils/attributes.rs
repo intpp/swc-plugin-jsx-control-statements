@@ -1,9 +1,11 @@
+use swc_common::SyntaxContext;
 use swc_core::common::Spanned;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::CondExpr;
 use swc_core::ecma::ast::Expr;
 use swc_core::ecma::ast::ExprOrSpread;
 use swc_core::ecma::ast::Ident;
+use swc_core::ecma::ast::Invalid;
 use swc_core::ecma::ast::JSXAttr;
 use swc_core::ecma::ast::JSXAttrName;
 use swc_core::ecma::ast::JSXAttrOrSpread;
@@ -247,4 +249,72 @@ pub fn set_jsx_child_element_key_attribute(
         }
         _ => {}
     }
+}
+
+pub fn throw_not_string_type(jsx_element: &JSXElement, attr_name: &str) {
+    let element_name = get_jsx_element_name(&jsx_element.opening.name);
+    display_error(
+        jsx_element.opening.span,
+        format!(
+            "Attribute \"each\" of <{}> tag must be of type String, e.g. {1}=\"...\"!",
+            element_name,
+            attr_name,
+        )
+        .as_str(),
+    );
+}
+
+pub fn throw_not_expression_type(jsx_element: &JSXElement, attr_name: &str) {
+    let element_name = get_jsx_element_name(&jsx_element.opening.name);
+    display_error(
+        jsx_element.opening.span,
+        format!(
+            "Attribute \"{1}\" of <{}> tag must be an expression, e.g. \"{1}={{...}}\"!",
+            element_name,
+            attr_name,
+        )
+        .as_str(),
+    );
+}
+
+pub fn get_for_jsx_element_attributes_expression(jsx_element: &JSXElement, attr_name: &str) -> Expr {
+    println!("Getting attribute: {}", attr_name);
+    get_jsx_element_attribute(jsx_element, attr_name)
+        .map(|attr| match attr {
+            JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
+                Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {expr, ..})) => { // of attr
+                    match expr {
+                        JSXExpr::Expr(value) => (*value).clone(),
+                        _ => {
+                            throw_not_expression_type(jsx_element, attr_name);
+                            Expr::Invalid(Invalid{span: DUMMY_SP})
+                        },
+                    }
+                },
+                Some(JSXAttrValue::Lit(Lit::Str(Str{value, ..}))) => {
+                    println!("Found string literal: {}", value);
+                    Expr::Ident(Ident {
+                        span: DUMMY_SP,
+                        sym: value.clone(),
+                        optional: false,
+                        ctxt: SyntaxContext::empty(),
+                    })
+                },
+                _ => {
+                    throw_not_string_type(jsx_element, attr_name);
+                    Expr::Ident(Ident::from("_"))
+                },
+            },
+            JSXAttrOrSpread::SpreadElement(value) => {
+                display_error(
+                    value.dot3_token.span(),
+                    format!("Spread is invalid for the value of a {}!",
+                        attr_name
+                    )
+                    .as_str(),
+                );
+
+                Expr::Ident(Ident::from("_"))
+            },
+        }).unwrap()
 }
