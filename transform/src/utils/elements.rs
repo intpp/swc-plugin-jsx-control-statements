@@ -104,46 +104,44 @@ pub fn wrap_by_child_jsx_expr_container(expr: Expr) -> JSXElementChild {
 }
 
 pub fn get_jsx_element_child_ident_ctxt(
-    children: Vec<JSXElementChild>,
-    attr_key: String,
+    children: &Vec<JSXElementChild>,
+    attr_key: &str,
 ) -> SyntaxContext {
     let mut global_ctxt = SyntaxContext::empty();
-    println!("孩子 {:?}", children);
-    println!("属性键 {:?}", attr_key);
     children.iter().for_each(|jsx_element_child| {
         match jsx_element_child {
             JSXElementChild::JSXElement(ref value) => {
-                global_ctxt = get_jsx_element_child_ident_ctxt(value.children.clone(), attr_key.clone());
+                global_ctxt = get_jsx_element_child_ident_ctxt(&value.children, &attr_key);
             },
             JSXElementChild::JSXExprContainer(JSXExprContainer{expr,..}) => {
                 match expr {
                     JSXExpr::Expr(expr) => {
                         match &**expr {
                             Expr::Ident(Ident{ctxt, sym, ..}) => {
-                                if sym.clone() == attr_key.clone() {
+                                if sym.clone() == attr_key {
                                     global_ctxt = ctxt.clone();
                                 }
                             },
                             Expr::Bin(BinExpr{left, right, ..}) => {
                                 if let Expr::Ident(Ident{ctxt, sym, ..}) = (&**left).clone() {
-                                    if sym.clone() == attr_key.clone() {
+                                    if sym.clone() == attr_key {
                                         global_ctxt = ctxt.clone();
                                     }
                                 }
                                 if let Expr::Bin(BinExpr{left, right, ..}) = (&**left).clone() {
                                     if let Expr::Ident(Ident{ctxt, sym, ..}) = (*left).clone() {
-                                        if sym.clone() == attr_key.clone() {
+                                        if sym.clone() == attr_key {
                                             global_ctxt = ctxt.clone();
                                         }
                                     }
                                     if let Expr::Ident(Ident{ctxt, sym, ..}) = (*right).clone() {
-                                        if sym.clone() == attr_key.clone() {
+                                        if sym.clone() == attr_key {
                                             global_ctxt = ctxt.clone();
                                         }
                                     }
                                 }
                                 if let Expr::Ident(Ident{ctxt, sym, ..}) = (&**right).clone() {
-                                    if sym.clone() == attr_key.clone() {
+                                    if sym.clone() == attr_key {
                                         global_ctxt = ctxt.clone();
                                     }
                                 }

@@ -80,9 +80,7 @@ pub fn parse_with_jsx_element(jsx_element: &mut JSXElement) -> (Vec<Param>, Vec<
                         ..
                     }) => {
                         if let JSXAttrName::Ident(IdentName{sym, ..}) = name {
-                            println!("采上： {:?}", sym.clone().to_string());
-                            global_ctxt = get_jsx_element_child_ident_ctxt(jsx_element.children.clone(), sym.clone().to_string());
-                            println!("上下文： {:?}", global_ctxt);
+                            global_ctxt = get_jsx_element_child_ident_ctxt(&jsx_element.children, sym.as_str());
                             params.push(Param::from(Pat::Ident(BindingIdent{ id: Ident {
                                 span: DUMMY_SP,
                                 sym: sym.clone(),
