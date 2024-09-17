@@ -5,6 +5,7 @@ use swc_core::ecma::ast::CondExpr;
 use swc_core::ecma::ast::Expr;
 use swc_core::ecma::ast::ExprOrSpread;
 use swc_core::ecma::ast::Ident;
+use swc_core::ecma::ast::Invalid;
 use swc_core::ecma::ast::JSXAttr;
 use swc_core::ecma::ast::JSXAttrName;
 use swc_core::ecma::ast::JSXAttrOrSpread;
@@ -286,13 +287,13 @@ pub fn get_for_jsx_element_attributes_expr(jsx_element: &JSXElement, attr_name: 
                         JSXExpr::Expr(value) => (*value).clone(),
                         _ => {
                             throw_not_expression_type(&jsx_element, attr_name);
-                            Expr::Ident(Ident::from("[]"))
+                            Expr::Invalid(Invalid{span: DUMMY_SP})
                         },
                     }
                 },
                 _ => {
                     throw_not_expression_type(&jsx_element, attr_name);
-                    Expr::Ident(Ident::from("[]"))
+                    Expr::Invalid(Invalid{span: DUMMY_SP})
                 },
             },
             JSXAttrOrSpread::SpreadElement(value) => {
@@ -304,9 +305,11 @@ pub fn get_for_jsx_element_attributes_expr(jsx_element: &JSXElement, attr_name: 
                     .as_str(),
                 );
 
-                Expr::Ident(Ident::from("_"))
+                Expr::Invalid(Invalid{span: DUMMY_SP})
             },
-        }).unwrap_or(Expr::Ident(Ident::from("_")))
+        }).unwrap_or(
+            Expr::Invalid(Invalid{span: DUMMY_SP})
+        )
 }
 
 pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name: &str) -> Ident {
