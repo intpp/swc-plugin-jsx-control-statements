@@ -1,4 +1,4 @@
-use swc_common::{Span, SyntaxContext, DUMMY_SP};
+use swc_common::{SyntaxContext, DUMMY_SP};
 use swc_core::atoms::Atom;
 use swc_core::ecma::ast::JSXElement;
 use swc_core::ecma::ast::*;
