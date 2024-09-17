@@ -1,6 +1,7 @@
 use swc_common::SyntaxContext;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::BinExpr;
+use swc_core::ecma::ast::BlockStmt;
 use swc_core::ecma::ast::CallExpr;
 use swc_core::ecma::ast::Callee;
 use swc_core::ecma::ast::ExprOrSpread;
@@ -11,8 +12,12 @@ use swc_core::ecma::ast::JSXExprContainer;
 use swc_core::ecma::ast::JSXSpreadChild;
 use swc_core::ecma::ast::JSXText;
 use swc_core::ecma::ast::Lit;
+use swc_core::ecma::ast::MemberExpr;
 use swc_core::ecma::ast::Null;
+use swc_core::ecma::ast::ReturnStmt;
+use swc_core::ecma::ast::Stmt;
 use swc_core::ecma::ast::Str;
+use swc_core::ecma::ast::FnExpr;
 use swc_core::ecma::ast::{ArrayLit, Expr};
 use tracing::debug;
 
@@ -103,56 +108,104 @@ pub fn wrap_by_child_jsx_expr_container(expr: Expr) -> JSXElementChild {
     })
 }
 
-pub fn get_jsx_element_child_ident_ctxt(
+pub fn get_jsx_element_child_ident_ctxt_by_attr(
     children: &Vec<JSXElementChild>,
-    attr_key: &str,
+    attr: &str,
 ) -> SyntaxContext {
     let mut global_ctxt = SyntaxContext::empty();
     children.iter().for_each(|jsx_element_child| {
         match jsx_element_child {
             JSXElementChild::JSXElement(ref value) => {
-                global_ctxt = get_jsx_element_child_ident_ctxt(&value.children, &attr_key);
+                global_ctxt = get_jsx_element_child_ident_ctxt_by_attr(&value.children, &attr);
             },
             JSXElementChild::JSXExprContainer(JSXExprContainer{expr,..}) => {
                 match expr {
                     JSXExpr::Expr(expr) => {
                         match &**expr {
                             Expr::Ident(Ident{ctxt, sym, ..}) => {
-                                if sym.clone() == attr_key {
+                                if sym.clone() == attr {
                                     global_ctxt = ctxt.clone();
                                 }
                             },
                             Expr::Bin(BinExpr{left, right, ..}) => {
                                 if let Expr::Ident(Ident{ctxt, sym, ..}) = (&**left).clone() {
-                                    if sym.clone() == attr_key {
+                                    if sym.clone() == attr {
                                         global_ctxt = ctxt.clone();
                                     }
-                                }
-                                if let Expr::Bin(BinExpr{left, right, ..}) = (&**left).clone() {
+                                } else if let Expr::Bin(BinExpr{left, right, ..}) = (&**left).clone() {
+                                    if let Expr::Bin(BinExpr{left,..}) = (*left).clone() {
+                                        match *left {
+                                            Expr::Ident(Ident{ctxt, ..}) => {
+                                                global_ctxt = ctxt.clone();
+                                            },
+                                            _ => {}
+                                        }
+                                    } 
                                     if let Expr::Ident(Ident{ctxt, sym, ..}) = (*left).clone() {
-                                        if sym.clone() == attr_key {
+                                        if sym.clone() == attr {
                                             global_ctxt = ctxt.clone();
                                         }
-                                    }
+                                    } 
                                     if let Expr::Ident(Ident{ctxt, sym, ..}) = (*right).clone() {
-                                        if sym.clone() == attr_key {
+                                        if sym.clone() == attr {
                                             global_ctxt = ctxt.clone();
                                         }
                                     }
                                 }
                                 if let Expr::Ident(Ident{ctxt, sym, ..}) = (&**right).clone() {
-                                    if sym.clone() == attr_key {
+                                    if sym.clone() == attr {
                                         global_ctxt = ctxt.clone();
                                     }
                                 }
                             },
-                            Expr::Call(CallExpr{ctxt, callee, ..}) => {
+                            Expr::Call(CallExpr{ctxt, callee, args, ..}) => {
+                                for arg in args {
+                                    match &*arg.expr {
+                                        Expr::Fn(FnExpr{function, ..}) => {
+                                            if let Some(BlockStmt{
+                                                stmts,
+                                                ..
+                                            }) = &(*function).body {
+                                                stmts.into_iter().for_each(|stmt| {
+                                                    match stmt {
+                                                        Stmt::Return(ReturnStmt{arg, ..}) => {
+                                                            match arg {
+                                                                Some(expr) => {
+                                                                    match &**expr {
+                                                                        Expr::Ident(Ident{ctxt,..}) => {
+                                                                            global_ctxt = ctxt.clone();
+                                                                        },
+                                                                        Expr::JSXElement(jsx_element) => {
+                                                                            global_ctxt = get_jsx_element_child_ident_ctxt_by_attr(&jsx_element.children, &attr);
+                                                                        },
+                                                                        _ => {},
+                                                                    }
+                                                                },
+                                                                _ => {},
+                                                            }
+                                                        },
+                                                        _ => {}
+                                                    }
+                                                })   
+                                            }
+                                        },
+                                        _ => {},
+                                    }
+                                }
                                 if let Callee::Expr(expr) = callee{
                                     match &**expr {
                                         Expr::Ident(Ident{ctxt, ..}) => {
                                             global_ctxt = ctxt.clone();
                                         },
-                                        _ => {global_ctxt = ctxt.clone();},
+                                        Expr::Member(MemberExpr{obj, ..}) => {
+                                            match &**obj {
+                                                Expr::Fn(FnExpr{function, ..}) => {
+                                                    global_ctxt = (**function).ctxt.clone();
+                                                },
+                                                _ => {},
+                                            }
+                                        }
+                                        _ => {},
                                     }
                                 } else {
                                     global_ctxt = ctxt.clone();
@@ -169,18 +222,18 @@ pub fn get_jsx_element_child_ident_ctxt(
                     JSXSpreadChild { expr, ..} => {
                         match &**expr {
                             Expr::Ident(Ident{ctxt, sym, ..}) => {
-                                if sym.clone() == attr_key {
+                                if sym.clone() == attr {
                                     global_ctxt = ctxt.clone();
                                 }
                             },
                             Expr::Bin(BinExpr{left, right, ..}) => {
                                 if let Expr::Ident(Ident{ctxt, sym, ..}) = (**left).clone() {
-                                    if sym.clone() == attr_key {
+                                    if sym.clone() == attr {
                                         global_ctxt = ctxt.clone();
                                     }
                                 }
                                 if let Expr::Ident(Ident{ctxt, sym, ..}) = (**right).clone() {
-                                    if sym.clone() == attr_key {
+                                    if sym.clone() == attr {
                                         global_ctxt =ctxt.clone();
                                     }
                                 }
@@ -190,6 +243,7 @@ pub fn get_jsx_element_child_ident_ctxt(
                     },
                 }
             },
+            
             _ => {},
         }
     });

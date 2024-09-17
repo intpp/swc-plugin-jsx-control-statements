@@ -5,7 +5,7 @@ use swc_core::ecma::ast::JSXElement;
 use swc_core::ecma::ast::*;
 
 use crate::utils::attributes::get_key_attribute;
-use crate::utils::elements::{convert_children_to_expression, get_jsx_element_child_ident_ctxt};
+use crate::utils::elements::{convert_children_to_expression, get_jsx_element_child_ident_ctxt_by_attr};
 
 use crate::utils::playthings::display_error;
 
@@ -80,7 +80,7 @@ pub fn parse_with_jsx_element(jsx_element: &mut JSXElement) -> (Vec<Param>, Vec<
                         ..
                     }) => {
                         if let JSXAttrName::Ident(IdentName{sym, ..}) = name {
-                            global_ctxt = get_jsx_element_child_ident_ctxt(&jsx_element.children, sym.as_str());
+                            global_ctxt = get_jsx_element_child_ident_ctxt_by_attr(&jsx_element.children, sym.as_str());
                             params.push(Param::from(Pat::Ident(BindingIdent{ id: Ident {
                                 span: DUMMY_SP,
                                 sym: sym.clone(),

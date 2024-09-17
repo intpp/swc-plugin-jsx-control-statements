@@ -1,7 +1,7 @@
 use swc_core::ecma::ast::JSXElementChild;
 use swc_core::ecma::{
     ast::Expr,
-    visit::{Fold, FoldWith, VisitMut},
+    visit::{Fold, FoldWith},
 };
 use tracing::debug;
 
@@ -14,8 +14,6 @@ pub fn transform_jsx_control_statements() -> impl Fold {
 }
 
 pub struct JSXControlStatements;
-
-impl VisitMut for JSXControlStatements {}
 
 impl Fold for JSXControlStatements {
     fn fold_expr(&mut self, expr: Expr) -> Expr {

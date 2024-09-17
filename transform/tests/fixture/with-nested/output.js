@@ -5,8 +5,8 @@ module.exports = class extends React.Component {
         return <div>
                 {(function(attr1) {
             return (function(attr2) {
-                    return <span>{attr1 + attr2}</span>;
-                }).call(this, "inner")
+                return <span>{attr1 + attr2}</span>;
+            }).call(this, "inner");
         }).call(this, "outer")}
             </div>;
     }
