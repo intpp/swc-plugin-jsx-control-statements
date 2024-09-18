@@ -1,10 +1,10 @@
 {
-  "name": "swc-plugin-jsx-control-statements",
-  "version": "0.5.0",
+  "name": "@zcy/swc-plugin-jsx-control-statements",
+  "version": "0.1.0",
   "description": "SWC plugin for jsx-control-statements",
   "repository": {
     "type": "git",
-    "url": "https://github.com/intpp/swc-plugin-jsx-control-statements"
+    "url": "https://git.cai-inc.com/fap/plugins/swc-plugin-jsx-control-statements"
   },
   "bugs": {
     "url": "https://github.com/intpp/swc-plugin-jsx-control-statements/issues"
@@ -26,6 +26,12 @@
     "prepack": "cp ./target/wasm32-wasi/release/swc_plugin_jsx_control_statements.wasm ."
   },
   "author": "intpp",
+  "maintainers": [
+    {
+      "name": "yuanzhian",
+      "email": "yuanzhian@cai-inc.com"
+    }
+  ],
   "license": "MIT",
   "preferUnplugged": true
 }
