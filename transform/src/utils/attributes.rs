@@ -1,3 +1,4 @@
+use swc_common::SyntaxContext;
 use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 use swc_core::common::DUMMY_SP;
@@ -22,7 +23,6 @@ use swc_core::ecma::ast::Str;
 use swc_core::ecma::ast::{ArrayLit, IdentName};
 use tracing::debug;
 
-use crate::utils::elements::get_jsx_element_child_ident_ctxt_by_attr;
 use crate::utils::playthings::display_error;
 
 pub fn build_key_attribute_value(group: &String, index: usize) -> String {
@@ -313,13 +313,14 @@ pub fn get_for_jsx_element_attributes_expr(jsx_element: &JSXElement, attr_name: 
 }
 
 pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name: &str) -> Ident {
+    let ctxt = SyntaxContext::empty();
     get_jsx_element_attribute(&jsx_element, attr_name)
         .map(|attr| {
             match attr {
                 JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
                     Some(JSXAttrValue::Lit(Lit::Str(value))) => {
                         let sym = Atom::from(value.value);
-                        let ctxt = get_jsx_element_child_ident_ctxt_by_attr(&jsx_element.children, sym.as_str());
+                        // let ctxt = get_jsx_element_child_ident_ctxt_by_attr(&jsx_element.children, sym.as_str());
                         Ident{
                             span: DUMMY_SP,
                             sym,
