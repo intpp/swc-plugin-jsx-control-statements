@@ -1,5 +1,5 @@
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::Expr;
+use swc_core::ecma::ast::{Expr, JSXExpr, JSXExprContainer};
 use swc_core::ecma::ast::{CondExpr, JSXElement, JSXElementChild, JSXText, Lit, Null};
 
 use crate::utils::attributes::{
@@ -61,7 +61,6 @@ fn parse_choose_jsx_element(
             }
             JSXElementChild::JSXElement(jsx_element) => {
                 let element_name = get_jsx_element_name(&jsx_element.opening.name);
-
                 if element_name == "Otherwise" {
                     if otherwise_found {
                         display_error(
@@ -103,6 +102,13 @@ fn parse_choose_jsx_element(
                         jsx_element.opening.span,
                         format!("<Condition /> tag can contain only <When /> and <Otherwise /> tags, got: <{}>.", element_name).as_str(),
                     );
+                }
+            }
+            JSXElementChild::JSXExprContainer(JSXExprContainer{expr,..}) => {
+                // Ignore comment case
+                match *expr {
+                    JSXExpr::JSXEmptyExpr(_) => {},
+                    _ => {}
                 }
             }
             _ => {
