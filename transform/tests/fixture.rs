@@ -1,15 +1,12 @@
 use std::path::PathBuf;
 
-use swc_core::{
-    // common::{chain, Mark},
-    ecma::{
-        visit::as_folder,
-        parser::{EsSyntax, Syntax},
-        transforms::{
-            // base::resolver,
-            testing::{test_fixture, FixtureTestConfig},
-        },
+use swc_core::ecma::{
+    parser::{EsSyntax, Syntax},
+    transforms::{
+        // base::resolver,
+        testing::{test_fixture, FixtureTestConfig},
     },
+    visit::as_folder,
 };
 
 use jsx_control_statements::visitor::JSXControlStatements;
@@ -27,12 +24,6 @@ fn jsx_control_statements_fixture(input: PathBuf) {
 
     test_fixture(
         syntax(),
-        // &|_| {
-        //     chain!(
-        //         resolver(Mark::new(), Mark::new(), false),
-        //         as_folder(JSXControlStatements)
-        //     )
-        // },
         &|_| as_folder(JSXControlStatements),
         &input,
         &output,

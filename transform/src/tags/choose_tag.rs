@@ -1,6 +1,6 @@
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Expr, JSXExpr, JSXExprContainer};
 use swc_core::ecma::ast::{CondExpr, JSXElement, JSXElementChild, JSXText, Lit, Null};
+use swc_core::ecma::ast::{Expr, JSXExpr, JSXExprContainer};
 
 use crate::utils::attributes::{
     get_condition_expression, get_jsx_element_name, get_key_attribute,
@@ -104,10 +104,10 @@ fn parse_choose_jsx_element(
                     );
                 }
             }
-            JSXElementChild::JSXExprContainer(JSXExprContainer{expr,..}) => {
+            JSXElementChild::JSXExprContainer(JSXExprContainer { expr, .. }) => {
                 // Ignore comment case
                 match *expr {
-                    JSXExpr::JSXEmptyExpr(_) => {},
+                    JSXExpr::JSXEmptyExpr(_) => {}
                     _ => {}
                 }
             }

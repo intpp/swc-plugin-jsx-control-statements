@@ -1,5 +1,8 @@
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{ExprOrSpread, JSXElementChild, JSXExpr, JSXExprContainer, JSXText, Lit, Null, Str, ArrayLit, Expr};
+use swc_core::ecma::ast::{
+    ArrayLit, Expr, ExprOrSpread, JSXElementChild, JSXExpr, JSXExprContainer, JSXText, Lit, Null,
+    Str,
+};
 use tracing::debug;
 
 use crate::utils::attributes::{build_key_attribute_value, set_jsx_child_element_key_attribute};

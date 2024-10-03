@@ -38,22 +38,21 @@ jsc: {
 import React from 'react';
 
 const Greeting = () => {
-  const [closed, setClosed] = useState(false);
-  
-  return (
-      <>
-          <If condition={!closed}>
-              Hello,
-          </If>
-          World
-          <If condition={!closed}>
-            <button onClick={() => setClosed(true)}>Close</button>
-          </If>
-      </>
-  )
+    const [closed, setClosed] = useState(false);
+
+    return (
+        <>
+            <If condition={!closed}>
+                Hello,
+            </If>
+            World
+            <If condition={!closed}>
+                <button onClick={() => setClosed(true)}>Close</button>
+            </If>
+        </>
+    )
 };
 ```
-
 
 ### `<Choose>` tag (if - else if - else condition)
 
@@ -61,60 +60,81 @@ const Greeting = () => {
 import React from 'react';
 
 const Greeting = () => {
-  const [closed, setClosed] = useState(false);
-  
-  return (
-      <>
-          <Choose>
-              <When condition={!closed}>
-                  Hello,
-              </When>
-              <Otherwise>
-                  Bye,
-              </Otherwise>
-          </Choose>
-          World
-          <If condition={!closed}>
-            <button onClick={() => setClosed(true)}>Close</button>
-          </If>
-      </>
-  )
+    const [closed, setClosed] = useState(false);
+
+    return (
+        <>
+            <Choose>
+                <When condition={!closed}>
+                    Hello,
+                </When>
+                <Otherwise>
+                    Bye,
+                </Otherwise>
+            </Choose>
+            World
+            <If condition={!closed}>
+                <button onClick={() => setClosed(true)}>Close</button>
+            </If>
+        </>
+    )
 };
 ```
 
-### For Tag
-
-Define `<For>` like so:
+### `For` tag (like array map function)
 
 ```jsx
-  // you must provide the key attribute yourself
-  <For each="item" of={ this.props.items }>
-    <span key={ item.id }>{ item.title }</span>
-  </For>
+import React from 'react';
 
-  // using the index as key attribute is not stable if the array changes
-  <For each="item" index="idx" of={ [1,2,3] }>
-    <span key={ idx }>{ item }</span>
-    <span key={ idx + '_2' }>Static Text</span>
-  </For>
+const TodoList = ({ items }) => {
+    return (
+        <For each="item" of={items}>
+            <span key={item.id}>{item.title}</span>
+        </For>
+    );
+};
 ```
 
-### With Tag
+> [!WARNING]  
+> using the index as key attribute is not stable if the array changes
+>
+> ```tsx
+> <For each="item" index="idx" of={[1, 2, 3]}>
+>   <span key={idx}>{item}</span>
+>   <span key={`${idx}_2`}>Static Text</span>
+> </For>
+>```
 
-Used to assign values to local variables:
+### `With` tag
 
-```javascript
-// simple
-<With foo={ 47 } bar={ 'test' }>
-  <span>{ foo }</span>
-  <span>{ bar }</span>
-</With>
+#### Simple
 
-// nested
-<With foo={ 47 }>
-  <With bar={ 'test' }>
-    <span>{ foo }</span>
-    <span>{ bar }</span>
-  </With>
-</With>
+```jsx
+import React from 'react';
+
+const SomeComponent = ({ items }) => {
+    return (
+        <With foo={47} bar="test">
+            <span>{foo}</span>
+            <span>{bar}</span>
+        </With>
+    );
+};
+```
+
+#### Nested
+
+```jsx
+import React from 'react';
+
+const SomeComponent = ({ items }) => {
+    return (
+        <With foo={47}>
+            <With bar="test">
+                <span>{foo}</span>
+                <span>{bar}</span>
+            </With>
+        </With>
+    );
+};
 ```

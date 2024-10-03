@@ -1,26 +1,11 @@
 use swc_common::SyntaxContext;
-use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::CondExpr;
-use swc_core::ecma::ast::Expr;
-use swc_core::ecma::ast::ExprOrSpread;
-use swc_core::ecma::ast::Ident;
-use swc_core::ecma::ast::Invalid;
-use swc_core::ecma::ast::JSXAttr;
-use swc_core::ecma::ast::JSXAttrName;
-use swc_core::ecma::ast::JSXAttrOrSpread;
-use swc_core::ecma::ast::JSXAttrValue;
-use swc_core::ecma::ast::JSXElement;
-use swc_core::ecma::ast::JSXElementChild;
-use swc_core::ecma::ast::JSXElementName;
-use swc_core::ecma::ast::JSXExpr;
-use swc_core::ecma::ast::JSXExprContainer;
-use swc_core::ecma::ast::JSXNamespacedName;
-use swc_core::ecma::ast::Lit;
-use swc_core::ecma::ast::SpreadElement;
-use swc_core::ecma::ast::Str;
-use swc_core::ecma::ast::{ArrayLit, IdentName};
+use swc_core::ecma::ast::{
+    ArrayLit, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Invalid, JSXAttr, JSXAttrName,
+    JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild, JSXElementName, JSXExpr,
+    JSXExprContainer, JSXNamespacedName, Lit, SpreadElement, Str,
+};
 use tracing::debug;
 
 use crate::utils::playthings::display_error;
@@ -258,8 +243,7 @@ pub fn throw_not_string_type(jsx_element: &JSXElement, attr_name: &str) {
         jsx_element.opening.span,
         format!(
             "Attribute \"each\" of <{}> tag must be of type String, e.g. {1}=\"...\"!",
-            element_name,
-            attr_name,
+            element_name, attr_name,
         )
         .as_str(),
     );
@@ -271,79 +255,69 @@ pub fn throw_not_expression_type(jsx_element: &JSXElement, attr_name: &str) {
         jsx_element.opening.span,
         format!(
             "Attribute \"{1}\" of <{}> tag must be an expression, e.g. \"{1}={{...}}\"!",
-            element_name,
-            attr_name,
+            element_name, attr_name,
         )
         .as_str(),
     );
 }
 
 pub fn get_for_jsx_element_attributes_expr(jsx_element: &JSXElement, attr_name: &str) -> Expr {
-    get_jsx_element_attribute(&jsx_element, attr_name)
+    get_jsx_element_attribute(jsx_element, attr_name)
         .map(|attr| match attr {
-            JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
-                Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {expr, ..})) => { // of attr
-                    match expr {
-                        JSXExpr::Expr(value) => (*value).clone(),
-                        _ => {
-                            throw_not_expression_type(&jsx_element, attr_name);
-                            Expr::Invalid(Invalid{span: DUMMY_SP})
-                        },
-                    }
-                },
-                _ => {
-                    throw_not_expression_type(&jsx_element, attr_name);
-                    Expr::Invalid(Invalid{span: DUMMY_SP})
-                },
-            },
+            JSXAttrOrSpread::JSXAttr(JSXAttr {
+                value:
+                    Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {
+                        expr: JSXExpr::Expr(value),
+                        ..
+                    })),
+                ..
+            }) => (*value).clone(),
+            JSXAttrOrSpread::JSXAttr(JSXAttr { .. }) => {
+                throw_not_expression_type(jsx_element, attr_name);
+
+                Expr::Invalid(Invalid { span: DUMMY_SP })
+            }
             JSXAttrOrSpread::SpreadElement(value) => {
                 display_error(
                     value.dot3_token.span(),
-                    format!("Spread is invalid for the value of a {}!",
-                        attr_name
-                    )
-                    .as_str(),
+                    format!("Spread is invalid for the value of a {}!", attr_name).as_str(),
                 );
 
-                Expr::Invalid(Invalid{span: DUMMY_SP})
-            },
-        }).unwrap_or(
-            Expr::Invalid(Invalid{span: DUMMY_SP})
-        )
+                Expr::Invalid(Invalid { span: DUMMY_SP })
+            }
+        })
+        .unwrap_or(Expr::Invalid(Invalid { span: DUMMY_SP }))
 }
 
 pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name: &str) -> Ident {
     let ctxt = SyntaxContext::empty();
-    get_jsx_element_attribute(&jsx_element, attr_name)
-        .map(|attr| {
-            match attr {
-                JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
-                    Some(JSXAttrValue::Lit(Lit::Str(value))) => {
-                        let sym = Atom::from(value.value);
-                        // let ctxt = get_jsx_element_child_ident_ctxt_by_attr(&jsx_element.children, sym.as_str());
-                        Ident{
-                            span: DUMMY_SP,
-                            sym,
-                            ctxt,
-                            optional: Default::default(),
-                        }
-                    },
-                    _ => {
-                        throw_not_string_type(&jsx_element, attr_name);
-                        Ident::from("_")
-                    },
-                },
-                JSXAttrOrSpread::SpreadElement(value) => {
-                    display_error(
-                        value.dot3_token.span(),
-                        format!("Spread is invalid for the value of a {}!",
-                            attr_name
-                        )
-                        .as_str(),
-                    );
-    
+
+    get_jsx_element_attribute(jsx_element, attr_name)
+        .map(|attr| match attr {
+            JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
+                Some(JSXAttrValue::Lit(Lit::Str(value))) => {
+                    let sym = value.value;
+
+                    Ident {
+                        span: DUMMY_SP,
+                        sym,
+                        ctxt,
+                        optional: Default::default(),
+                    }
+                }
+                _ => {
+                    throw_not_string_type(jsx_element, attr_name);
                     Ident::from("_")
-                },
-        }
-        }).unwrap_or(Ident::from("_"))
+                }
+            },
+            JSXAttrOrSpread::SpreadElement(value) => {
+                display_error(
+                    value.dot3_token.span(),
+                    format!("Spread is invalid for the value of a {}!", attr_name).as_str(),
+                );
+
+                Ident::from("_")
+            }
+        })
+        .unwrap_or(Ident::from("_"))
 }

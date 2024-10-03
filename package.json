@@ -1,6 +1,6 @@
 {
   "name": "swc-plugin-jsx-control-statements",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "SWC plugin for jsx-control-statements",
   "repository": {
     "type": "git",
@@ -16,6 +16,7 @@
     "if",
     "else",
     "swc",
+    "swc-core",
     "swc-plugin",
     "jsx-control-statements",
     "react-component"
