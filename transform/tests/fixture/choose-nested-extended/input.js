@@ -5,6 +5,7 @@ module.exports = class extends React.Component {
     return (
       <div>
         <Choose key="blah">
+          {/* comment */}
           <When condition={this.props.outerWhen}>
             <Choose>
               <When condition={this.props.innerWhen}>

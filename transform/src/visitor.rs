@@ -1,54 +1,53 @@
-use swc_core::ecma::ast::JSXElementChild;
 use swc_core::ecma::{
-    ast::Expr,
-    visit::{Fold, FoldWith, VisitMut},
+    ast::*,
+    visit::*,
 };
 use tracing::debug;
 
-use crate::tags::{choose_tag, if_tag, with_tag};
+use crate::tags::{choose_tag, if_tag, with_tag, for_tag};
 use crate::utils::attributes::get_jsx_element_name;
 use crate::utils::elements::wrap_by_child_jsx_expr_container;
 
-pub fn transform_jsx_control_statements() -> impl Fold {
-    JSXControlStatements
-}
-
 pub struct JSXControlStatements;
 
-impl VisitMut for JSXControlStatements {}
+impl VisitMut for JSXControlStatements {
+    fn visit_mut_expr(&mut self, expr: &mut Expr) {
 
-impl Fold for JSXControlStatements {
-    fn fold_expr(&mut self, expr: Expr) -> Expr {
-        let expr = expr.fold_children_with(self);
+        expr.visit_mut_children_with(self);
 
         match expr {
-            Expr::JSXElement(mut jsx_element) => {
+            Expr::JSXElement(jsx_element) => {
                 let element_name = get_jsx_element_name(&jsx_element.opening.name);
 
                 debug!("fold_expr::Expr::JSXElement::tag_name = {}", element_name);
 
-                match element_name {
-                    "If" => if_tag::convert_jsx_element(&mut jsx_element),
-                    "Choose" => choose_tag::convert_jsx_element(&mut jsx_element),
-                    _ => {
-                        if element_name == "With" {
-                            with_tag::convert_with_jsx_element(&jsx_element);
-                        }
-
-                        Expr::JSXElement(jsx_element)
-                    }
+                match &*element_name {
+                    "If" => {
+                        *expr = if_tag::convert_jsx_element(jsx_element);
+                    },
+                    "Choose" => {
+                        *expr = choose_tag::convert_jsx_element(jsx_element);
+                    },
+                    "With" => {
+                        *expr = with_tag::convert_jsx_element(jsx_element);
+                    },
+                    "For" => {
+                        *expr = for_tag::convert_jsx_element(jsx_element);
+                    },
+                    _ => {}
                 }
             }
-            _ => expr,
+            ,
+            _ => {}
         }
     }
 
-    fn fold_jsx_element_child(&mut self, element: JSXElementChild) -> JSXElementChild {
-        let element = element.fold_children_with(self);
+    fn visit_mut_jsx_element_child(&mut self, element: &mut JSXElementChild) {
+
+        element.visit_mut_children_with(self);
 
         match element {
-            JSXElementChild::JSXElement(value) => {
-                let mut jsx_element = *value;
+            JSXElementChild::JSXElement(jsx_element) => {
 
                 let element_name = get_jsx_element_name(&jsx_element.opening.name);
 
@@ -58,22 +57,22 @@ impl Fold for JSXControlStatements {
                 );
 
                 match element_name {
-                    "If" => wrap_by_child_jsx_expr_container(if_tag::convert_jsx_element(
-                        &mut jsx_element,
-                    )),
-                    "Choose" => wrap_by_child_jsx_expr_container(choose_tag::convert_jsx_element(
-                        &mut jsx_element,
-                    )),
-                    _ => {
-                        if element_name == "With" {
-                            with_tag::convert_with_jsx_element(&jsx_element);
-                        }
-
-                        JSXElementChild::JSXElement(Box::new(jsx_element))
-                    }
+                    "If" => {
+                        *element = wrap_by_child_jsx_expr_container(if_tag::convert_jsx_element(jsx_element));
+                    },
+                    "Choose" => {
+                        *element = wrap_by_child_jsx_expr_container(choose_tag::convert_jsx_element(jsx_element));
+                    },
+                    "With" => {
+                        *element = wrap_by_child_jsx_expr_container(with_tag::convert_jsx_element(jsx_element));
+                    },
+                    "For" => {
+                        *element = wrap_by_child_jsx_expr_container(for_tag::convert_jsx_element(jsx_element));
+                    },
+                    _ => {}
                 }
             }
-            _ => element,
+            _ => {},
         }
     }
 }

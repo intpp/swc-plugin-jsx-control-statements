@@ -1,9 +1,12 @@
+use swc_common::SyntaxContext;
+use swc_core::atoms::Atom;
 use swc_core::common::Spanned;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::CondExpr;
 use swc_core::ecma::ast::Expr;
 use swc_core::ecma::ast::ExprOrSpread;
 use swc_core::ecma::ast::Ident;
+use swc_core::ecma::ast::Invalid;
 use swc_core::ecma::ast::JSXAttr;
 use swc_core::ecma::ast::JSXAttrName;
 use swc_core::ecma::ast::JSXAttrOrSpread;
@@ -247,4 +250,100 @@ pub fn set_jsx_child_element_key_attribute(
         }
         _ => {}
     }
+}
+
+pub fn throw_not_string_type(jsx_element: &JSXElement, attr_name: &str) {
+    let element_name = get_jsx_element_name(&jsx_element.opening.name);
+    display_error(
+        jsx_element.opening.span,
+        format!(
+            "Attribute \"each\" of <{}> tag must be of type String, e.g. {1}=\"...\"!",
+            element_name,
+            attr_name,
+        )
+        .as_str(),
+    );
+}
+
+pub fn throw_not_expression_type(jsx_element: &JSXElement, attr_name: &str) {
+    let element_name: &str = get_jsx_element_name(&jsx_element.opening.name);
+    display_error(
+        jsx_element.opening.span,
+        format!(
+            "Attribute \"{1}\" of <{}> tag must be an expression, e.g. \"{1}={{...}}\"!",
+            element_name,
+            attr_name,
+        )
+        .as_str(),
+    );
+}
+
+pub fn get_for_jsx_element_attributes_expr(jsx_element: &JSXElement, attr_name: &str) -> Expr {
+    get_jsx_element_attribute(&jsx_element, attr_name)
+        .map(|attr| match attr {
+            JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
+                Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {expr, ..})) => { // of attr
+                    match expr {
+                        JSXExpr::Expr(value) => (*value).clone(),
+                        _ => {
+                            throw_not_expression_type(&jsx_element, attr_name);
+                            Expr::Invalid(Invalid{span: DUMMY_SP})
+                        },
+                    }
+                },
+                _ => {
+                    throw_not_expression_type(&jsx_element, attr_name);
+                    Expr::Invalid(Invalid{span: DUMMY_SP})
+                },
+            },
+            JSXAttrOrSpread::SpreadElement(value) => {
+                display_error(
+                    value.dot3_token.span(),
+                    format!("Spread is invalid for the value of a {}!",
+                        attr_name
+                    )
+                    .as_str(),
+                );
+
+                Expr::Invalid(Invalid{span: DUMMY_SP})
+            },
+        }).unwrap_or(
+            Expr::Invalid(Invalid{span: DUMMY_SP})
+        )
+}
+
+pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name: &str) -> Ident {
+    let ctxt = SyntaxContext::empty();
+    get_jsx_element_attribute(&jsx_element, attr_name)
+        .map(|attr| {
+            match attr {
+                JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
+                    Some(JSXAttrValue::Lit(Lit::Str(value))) => {
+                        let sym = Atom::from(value.value);
+                        // let ctxt = get_jsx_element_child_ident_ctxt_by_attr(&jsx_element.children, sym.as_str());
+                        Ident{
+                            span: DUMMY_SP,
+                            sym,
+                            ctxt,
+                            optional: Default::default(),
+                        }
+                    },
+                    _ => {
+                        throw_not_string_type(&jsx_element, attr_name);
+                        Ident::from("_")
+                    },
+                },
+                JSXAttrOrSpread::SpreadElement(value) => {
+                    display_error(
+                        value.dot3_token.span(),
+                        format!("Spread is invalid for the value of a {}!",
+                            attr_name
+                        )
+                        .as_str(),
+                    );
+    
+                    Ident::from("_")
+                },
+        }
+        }).unwrap_or(Ident::from("_"))
 }
