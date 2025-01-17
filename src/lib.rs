@@ -5,5 +5,5 @@ use swc_core::{
 };
 #[plugin_transform]
 pub fn process_transform(program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
-    program.fold_with(&mut as_folder(visitor::JSXControlStatements))
+    program.apply(visit_mut_pass(visitor::JSXControlStatements))
 }
