@@ -1,6 +1,6 @@
 {
   "name": "swc-plugin-jsx-control-statements",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "SWC plugin for jsx-control-statements",
   "repository": {
     "type": "git",
@@ -23,7 +23,7 @@
   ],
   "main": "swc_plugin_jsx_control_statements.wasm",
   "scripts": {
-    "prepublishOnly": "cargo build-wasi --release",
+    "prepublishOnly": "cargo build-wasip1 --release",
     "prepack": "cp ./target/wasm32-wasip1/release/swc_plugin_jsx_control_statements.wasm ."
   },
   "author": "intpp",
