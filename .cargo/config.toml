@@ -1,5 +1,5 @@
 [alias]
-build-wasi = "build --target wasm32-wasi"
+build-wasi = "build --target wasm32-wasip1"
 build-wasm32 = "build --target wasm32-unknown-unknown"
 
 [registries.crates-io]

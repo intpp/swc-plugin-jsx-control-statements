@@ -24,7 +24,7 @@
   "main": "swc_plugin_jsx_control_statements.wasm",
   "scripts": {
     "prepublishOnly": "cargo build-wasi --release",
-    "prepack": "cp ./target/wasm32-wasi/release/swc_plugin_jsx_control_statements.wasm ."
+    "prepack": "cp ./target/wasm32-wasip1/release/swc_plugin_jsx_control_statements.wasm ."
   },
   "author": "intpp",
   "license": "MIT",
