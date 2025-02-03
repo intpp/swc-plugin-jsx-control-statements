@@ -5,7 +5,7 @@ edition = "2021"
 license = "ISC"
 name = "swc_plugin_jsx_control_statements"
 publish = false
-version = "0.7.0"
+version = "0.7.1"
 
 [lib]
 crate-type = ["cdylib"]
