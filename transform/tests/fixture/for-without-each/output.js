@@ -12,3 +12,18 @@ module.exports = class extends React.Component {
       </div>;
     }
 };
+module.exports.A = ()=>{
+    const _1 = 1;
+    return <div>
+      {[
+        1,
+        2,
+        3
+    ].map(function(_, _) {
+        return [
+            "ABC",
+            _1
+        ];
+    }, this)}
+    </div>;
+};

@@ -11,3 +11,12 @@ module.exports = class extends React.Component {
     );
   }
 };
+
+module.exports.A = () => {
+  const _ = 1;
+  return (
+    <div>
+      <For of={[1, 2, 3]}>ABC{_}</For>
+    </div>
+  );
+};

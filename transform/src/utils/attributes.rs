@@ -1,6 +1,6 @@
-use swc_common::SyntaxContext;
 use swc_core::common::Spanned;
 use swc_core::common::DUMMY_SP;
+use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{
     ArrayLit, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Invalid, JSXAttr, JSXAttrName,
     JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild, JSXElementName, JSXExpr,
@@ -289,25 +289,25 @@ pub fn get_for_jsx_element_attributes_expr(jsx_element: &JSXElement, attr_name: 
         .unwrap_or(Expr::Invalid(Invalid { span: DUMMY_SP }))
 }
 
-pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name: &str) -> Ident {
+pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name: &str) -> Option<Ident> {
     let ctxt = SyntaxContext::empty();
+
 
     get_jsx_element_attribute(jsx_element, attr_name)
         .map(|attr| match attr {
             JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
                 Some(JSXAttrValue::Lit(Lit::Str(value))) => {
                     let sym = value.value;
-
-                    Ident {
+                    Some(Ident {
                         span: DUMMY_SP,
                         sym,
                         ctxt,
                         optional: Default::default(),
-                    }
+                    })
                 }
                 _ => {
                     throw_not_string_type(jsx_element, attr_name);
-                    Ident::from("_")
+                    None
                 }
             },
             JSXAttrOrSpread::SpreadElement(value) => {
@@ -316,8 +316,8 @@ pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name:
                     format!("Spread is invalid for the value of a {}!", attr_name).as_str(),
                 );
 
-                Ident::from("_")
+                None
             }
         })
-        .unwrap_or(Ident::from("_"))
+        .unwrap_or(None)
 }

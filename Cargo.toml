@@ -16,5 +16,5 @@ lto = true
 strip = "symbols"
 
 [dependencies]
-swc_core = { version = "10.6.1", features = ["ecma_plugin_transform"] }
+swc_core = { version = "40.0.0", features = ["ecma_plugin_transform"] }
 jsx_control_statements = { path = "./transform" }

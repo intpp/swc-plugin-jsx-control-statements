@@ -1,22 +1,40 @@
-use swc_common::{SyntaxContext, DUMMY_SP};
 use swc_core::atoms::Atom;
-use swc_core::common::Spanned;
+use swc_core::common::{Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::JSXElement;
 use swc_core::ecma::ast::*;
+use swc_core::ecma::visit::VisitMutWith;
 
 use crate::utils::attributes::get_key_attribute;
 use crate::utils::elements::convert_children_to_expression;
 
+use crate::utils::ident_replacer::IdentReplacer;
 use crate::utils::playthings::display_error;
 
 pub fn convert_jsx_element(jsx_element: &mut JSXElement) -> Expr {
-    let (params, values, ctxt) = parse_with_jsx_element(jsx_element);
+    let (param_idents, values, ctxt) = parse_with_jsx_element(jsx_element);
 
     let group_key = get_key_attribute(jsx_element);
 
-    let children_expr =
+    let mut children_expr =
         convert_children_to_expression(&mut jsx_element.children, group_key.clone());
 
+    for param_ident in &param_idents {
+        let mut replacer = IdentReplacer {
+            target_sym: param_ident.sym.clone(),
+            target_ctxt: param_ident.ctxt,
+        };
+        children_expr.visit_mut_with(&mut replacer);
+    }
+
+    let params = param_idents
+        .into_iter()
+        .map(|ident| {
+            Param::from(Pat::Ident(BindingIdent {
+                id: ident,
+                type_ann: None,
+            }))
+        })
+        .collect();
     Expr::Call(CallExpr {
         span: DUMMY_SP,
         ctxt,
@@ -57,8 +75,8 @@ pub fn convert_jsx_element(jsx_element: &mut JSXElement) -> Expr {
 
 pub fn parse_with_jsx_element(
     jsx_element: &mut JSXElement,
-) -> (Vec<Param>, Vec<ExprOrSpread>, SyntaxContext) {
-    let mut params = Vec::new();
+) -> (Vec<Ident>, Vec<ExprOrSpread>, SyntaxContext) {
+    let mut param_idents = Vec::new();
     let mut values = Vec::new();
 
     let ctxt = SyntaxContext::empty();
@@ -70,15 +88,12 @@ pub fn parse_with_jsx_element(
         .for_each(|attribute| match attribute {
             JSXAttrOrSpread::JSXAttr(JSXAttr { name, value, .. }) => {
                 if let JSXAttrName::Ident(IdentName { sym, .. }) = name {
-                    params.push(Param::from(Pat::Ident(BindingIdent {
-                        id: Ident {
-                            span: DUMMY_SP,
-                            sym: sym.clone(),
-                            ctxt,
-                            optional: false,
-                        },
-                        type_ann: None,
-                    })));
+                    param_idents.push(Ident {
+                        span: DUMMY_SP,
+                        sym: sym.clone(),
+                        ctxt,
+                        optional: false,
+                    });
                 }
 
                 if let JSXAttrName::JSXNamespacedName(JSXNamespacedName {
@@ -126,5 +141,5 @@ pub fn parse_with_jsx_element(
         ExprOrSpread::from(Box::new(Expr::This(ThisExpr { span: DUMMY_SP }))),
     );
 
-    (params, values, ctxt)
+    (param_idents, values, ctxt)
 }

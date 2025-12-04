@@ -3,7 +3,7 @@ var React = require("react");
 module.exports = class extends React.Component {
   render() {
     this.test = "test";
-
+    const item = 1;
     return (
       <div>
         <For each="item" of={this.props.items}>
