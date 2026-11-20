@@ -23,8 +23,7 @@
   ],
   "main": "swc_plugin_jsx_control_statements.wasm",
   "scripts": {
-    "prepublishOnly": "cargo build-wasip1 --release",
-    "prepack": "cp ./target/wasm32-wasip1/release/swc_plugin_jsx_control_statements.wasm ."
+    "prepack": "cargo build-wasip1 --release && cp ./target/wasm32-wasip1/release/swc_plugin_jsx_control_statements.wasm ."
   },
   "author": "intpp",
   "license": "MIT",

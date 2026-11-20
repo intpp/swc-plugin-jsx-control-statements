@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "node node_modules/typescript6/bin/tsc && node node_modules/typescript7/bin/tsc && node runtime.cjs"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.16.22",
+    "@types/react": "^19",
+    "react": "^19",
+    "react-dom": "^19",
+    "typescript6": "npm:typescript@6",
+    "typescript7": "npm:typescript@7"
+  }
+}

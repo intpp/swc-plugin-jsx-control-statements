@@ -3,7 +3,7 @@ module.exports = class extends React.Component {
     render() {
         this.test = "test";
         return <div>
-        {this.props.items.map(function(item, _) {
+        {this.props.items.map(function(item) {
             return item;
         }, this)}
       </div>;

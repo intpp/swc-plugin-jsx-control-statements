@@ -1,22 +1,20 @@
-declare type ConditionalTagProps = { condition: boolean, children: React.ReactNode };
+import type { ReactElement, ReactNode } from "react";
 
-declare function Choose(props: { children: React.ReactNode }): any;
+type ForProps<T> = { of: Iterable<T> } & (
+    | { body: (item: T, index: number) => ReactNode; children?: never; each?: never; index?: never }
+    | { body?: never; children?: ReactNode; each?: string; index?: string }
+);
 
-declare function When(props: ConditionalTagProps): any;
+declare global {
+    type ConditionalTagProps = { condition: boolean; children?: ReactNode };
 
-declare function Otherwise(props: { children: React.ReactNode }): any;
+    function If(props: ConditionalTagProps): ReactElement;
+    function Else(props: { children?: never }): ReactElement;
+    function Choose(props: { children: ReactNode }): ReactElement;
+    function When(props: ConditionalTagProps): ReactElement;
+    function Otherwise(props: { children: ReactNode }): ReactElement;
 
-declare function If(props: ConditionalTagProps): any;
+    function For<T>(props: ForProps<T>): ReactElement;
 
-declare function For<T>(props: {
-    each: string;
-    of: Iterable<T>;
-    index?: string;
-    children: React.ReactNode
-}): any;
-declare function For<T>(props: {
-    of: Iterable<T>;
-    body: (item: T, index?: number) => React.ReactNode;
-}): any;
-
-declare function With(props: { [id: string]: any, children: React.ReactNode }): any;
+    function With(props: { [name: string]: unknown; children?: ReactNode }): ReactElement;
+}

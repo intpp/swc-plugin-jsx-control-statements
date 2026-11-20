@@ -7,6 +7,13 @@ name = "swc_plugin_jsx_control_statements"
 publish = false
 version = "0.7.1"
 
+[workspace]
+members = ["transform"]
+resolver = "2"
+
+[workspace.dependencies]
+swc_core = "85.0.0"
+
 [lib]
 crate-type = ["cdylib"]
 
@@ -16,5 +23,5 @@ lto = true
 strip = "symbols"
 
 [dependencies]
-swc_core = { version = "10.6.1", features = ["ecma_plugin_transform"] }
+swc_core = { workspace = true, features = ["ecma_plugin_transform"] }
 jsx_control_statements = { path = "./transform" }

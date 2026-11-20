@@ -1,130 +1,63 @@
-use swc_common::{SyntaxContext, DUMMY_SP};
-use swc_core::atoms::Atom;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::JSXElement;
+use swc_core::common::{Spanned, DUMMY_SP};
 use swc_core::ecma::ast::*;
 
 use crate::utils::attributes::get_key_attribute;
 use crate::utils::elements::convert_children_to_expression;
-
+use crate::utils::functions::returning_function;
 use crate::utils::playthings::display_error;
 
-pub fn convert_jsx_element(jsx_element: &mut JSXElement) -> Expr {
-    let (params, values, ctxt) = parse_with_jsx_element(jsx_element);
+const CALL: &str = "call";
 
-    let group_key = get_key_attribute(jsx_element);
+pub fn convert_jsx_element(element: &mut JSXElement) -> Expr {
+    let mut params = Vec::new();
+    let mut args = vec![ExprOrSpread::from(Box::new(Expr::This(ThisExpr {
+        span: DUMMY_SP,
+    })))];
 
-    let children_expr =
-        convert_children_to_expression(&mut jsx_element.children, group_key.clone());
+    for attribute in &element.opening.attrs {
+        let JSXAttrOrSpread::JSXAttr(attr) = attribute else {
+            display_error(
+                attribute.span(),
+                "Unsupported: Spread operator disallowed for JSX control statement tags!",
+            );
+            continue;
+        };
+        let JSXAttrName::Ident(name) = &attr.name else {
+            display_error(
+                attr.name.span(),
+                "Unsupported: Namespaced name for JSX control statement tag's prop!",
+            );
+            continue;
+        };
 
+        let value = match &attr.value {
+            None => Expr::Lit(Lit::Bool(true.into())),
+            Some(JSXAttrValue::Str(value)) => Expr::Lit(Lit::Str(value.clone())),
+            Some(JSXAttrValue::JSXElement(value)) => Expr::JSXElement(value.clone()),
+            Some(JSXAttrValue::JSXFragment(value)) => Expr::JSXFragment(value.clone()),
+            Some(JSXAttrValue::JSXExprContainer(container)) => match &container.expr {
+                JSXExpr::Expr(expr) => *expr.clone(),
+                JSXExpr::JSXEmptyExpr(empty) => Expr::JSXEmpty(empty.clone()),
+                #[cfg(swc_ast_unknown)]
+                _ => panic!("Unsupported JSX expression in <With>"),
+            },
+            #[cfg(swc_ast_unknown)]
+            _ => panic!("Unsupported JSX attribute value in <With>"),
+        };
+        params.push(Ident::from(name.sym.clone()));
+        args.push(ExprOrSpread::from(Box::new(value)));
+    }
+
+    let group_key = get_key_attribute(element);
+    let result = convert_children_to_expression(&mut element.children, group_key);
     Expr::Call(CallExpr {
         span: DUMMY_SP,
-        ctxt,
-        callee: Callee::Expr({
-            Box::new(Expr::Member(MemberExpr {
-                span: DUMMY_SP,
-                obj: Box::new(Expr::Fn(FnExpr {
-                    ident: None,
-                    function: Box::new(Function {
-                        span: DUMMY_SP,
-                        params, // With the key of all attributes on the JSX element
-                        decorators: Default::default(),
-                        body: Some(BlockStmt {
-                            span: DUMMY_SP,
-                            ctxt,
-                            stmts: vec![Stmt::Return(ReturnStmt {
-                                span: DUMMY_SP,
-                                arg: Some(Box::new(children_expr)), // Child element With JSX element
-                            })],
-                        }),
-                        ctxt,
-                        is_generator: Default::default(),
-                        is_async: Default::default(),
-                        type_params: Default::default(),
-                        return_type: Default::default(),
-                    }),
-                })),
-                prop: MemberProp::Ident(IdentName {
-                    span: DUMMY_SP,
-                    sym: Atom::from("call"),
-                }),
-            }))
-        }),
-        args: values, // The first element is this, and the remaining elements are the key values of all the attributes on the With JSX element
-        type_args: None,
+        callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+            span: DUMMY_SP,
+            obj: Box::new(returning_function(params, result)),
+            prop: MemberProp::Ident(CALL.into()),
+        }))),
+        args,
+        ..Default::default()
     })
-}
-
-pub fn parse_with_jsx_element(
-    jsx_element: &mut JSXElement,
-) -> (Vec<Param>, Vec<ExprOrSpread>, SyntaxContext) {
-    let mut params = Vec::new();
-    let mut values = Vec::new();
-
-    let ctxt = SyntaxContext::empty();
-
-    jsx_element
-        .opening
-        .attrs
-        .iter()
-        .for_each(|attribute| match attribute {
-            JSXAttrOrSpread::JSXAttr(JSXAttr { name, value, .. }) => {
-                if let JSXAttrName::Ident(IdentName { sym, .. }) = name {
-                    params.push(Param::from(Pat::Ident(BindingIdent {
-                        id: Ident {
-                            span: DUMMY_SP,
-                            sym: sym.clone(),
-                            ctxt,
-                            optional: false,
-                        },
-                        type_ann: None,
-                    })));
-                }
-
-                if let JSXAttrName::JSXNamespacedName(JSXNamespacedName {
-                    ns: IdentName { span, .. },
-                    ..
-                }) = name
-                {
-                    display_error(
-                        *span,
-                        "Unsupported: Namespaced name for JSX control statement tag's prop!",
-                    );
-                }
-
-                if let Some(jsx_attr_value) = value {
-                    match jsx_attr_value {
-                        JSXAttrValue::JSXExprContainer(JSXExprContainer { expr, .. }) => {
-                            let expr_or_spread = match expr {
-                                JSXExpr::JSXEmptyExpr(JSXEmptyExpr { span }) => {
-                                    ExprOrSpread::from(Box::new(Expr::JSXEmpty(JSXEmptyExpr {
-                                        span: *span,
-                                    })))
-                                }
-                                JSXExpr::Expr(expr) => ExprOrSpread::from(expr.clone()),
-                            };
-
-                            values.push(expr_or_spread);
-                        }
-                        JSXAttrValue::Lit(lit) => {
-                            values.push(ExprOrSpread::from(Box::new(Expr::Lit(lit.clone()))));
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            JSXAttrOrSpread::SpreadElement(SpreadElement { dot3_token, .. }) => {
-                display_error(
-                    dot3_token.span(),
-                    "Unsupported: Spread operator disallowed for JSX control statement tags!",
-                );
-            }
-        });
-
-    values.insert(
-        0,
-        ExprOrSpread::from(Box::new(Expr::This(ThisExpr { span: DUMMY_SP }))),
-    );
-
-    (params, values, ctxt)
 }

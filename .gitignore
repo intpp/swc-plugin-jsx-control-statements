@@ -14,3 +14,8 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+# Local plugin builds and consumer tests
+/swc_plugin_jsx_control_statements.wasm
+.swc/
+node_modules/

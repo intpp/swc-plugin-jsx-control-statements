@@ -1,8 +1,7 @@
-use swc_common::SyntaxContext;
-use swc_core::common::Spanned;
-use swc_core::common::DUMMY_SP;
+use swc_core::atoms::{wtf8::Wtf8Buf, Wtf8Atom};
+use swc_core::common::{Spanned, DUMMY_SP};
 use swc_core::ecma::ast::{
-    ArrayLit, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Invalid, JSXAttr, JSXAttrName,
+    ArrayLit, CondExpr, Expr, ExprOrSpread, Ident, IdentName, JSXAttr, JSXAttrName,
     JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild, JSXElementName, JSXExpr,
     JSXExprContainer, JSXNamespacedName, Lit, SpreadElement, Str,
 };
@@ -10,12 +9,18 @@ use tracing::debug;
 
 use crate::utils::playthings::display_error;
 
-pub fn build_key_attribute_value(group: &String, index: usize) -> String {
-    if !group.is_empty() {
-        format!("{}-{}", group, index)
-    } else {
-        format!("{}", index)
+const CONDITION: &str = "condition";
+const KEY: &str = "key";
+
+const KEY_SEPARATOR: &str = "-";
+
+pub fn build_key_attribute_value(group: &Wtf8Atom, index: usize) -> Wtf8Atom {
+    let mut key = Wtf8Buf::from(group);
+    if !key.is_empty() {
+        key.push_str(KEY_SEPARATOR);
     }
+    key.push_str(&index.to_string());
+    key.into()
 }
 
 pub fn get_jsx_element_name(jsx_element_name: &JSXElementName) -> &str {
@@ -25,75 +30,43 @@ pub fn get_jsx_element_name(jsx_element_name: &JSXElementName) -> &str {
     }
 }
 
-pub fn get_jsx_element_attribute(
-    jsx_element: &JSXElement,
-    attribute_name: &str,
-) -> Option<JSXAttrOrSpread> {
-    jsx_element
-        .opening
-        .attrs
-        .iter()
-        .find(|attribute| match attribute {
-            JSXAttrOrSpread::JSXAttr(JSXAttr {
-                name: JSXAttrName::Ident(IdentName { sym, .. }),
-                ..
-            }) => sym == attribute_name,
-            _ => false,
-        })
-        .cloned()
+fn get_jsx_element_attribute<'a>(element: &'a JSXElement, name: &str) -> Option<&'a JSXAttr> {
+    element.opening.attrs.iter().find_map(|attr| match attr {
+        JSXAttrOrSpread::JSXAttr(attr) if matches!(&attr.name, JSXAttrName::Ident(id) if id.sym == name) => Some(attr),
+        _ => None,
+    })
 }
 
-pub fn get_condition_expression(jsx_element: &JSXElement) -> Expr {
-    get_jsx_element_attribute(jsx_element, "condition")
-        .map(|attr| match attr {
-            JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
-                Some(JSXAttrValue::JSXExprContainer(value)) => {
-                    let JSXExprContainer { expr, .. } = value;
-
-                    match expr {
-                        JSXExpr::Expr(value) => (*value).clone(),
-                        _ => Expr::Lit(Lit::Bool(false.into())),
-                    }
-                }
-                _ => Expr::Lit(Lit::Bool(false.into())),
-            },
-            JSXAttrOrSpread::SpreadElement(value) => {
-                display_error(
-                    value.dot3_token.span(),
-                    "Spread is invalid for the value of a condition!",
-                );
-
-                Expr::Lit(Lit::Bool(false.into()))
-            }
-        })
-        .unwrap_or_else(|| {
-            let element_name = get_jsx_element_name(&jsx_element.opening.name);
-
-            display_error(
-                jsx_element.opening.span,
-                format!(
-                    "Attribute \"condition\" is required for the <{}> tag!",
-                    element_name
-                )
-                .as_str(),
-            );
-
-            Expr::Lit(Lit::Bool(false.into()))
-        })
-}
-
-pub fn get_key_attribute(jsx_element: &JSXElement) -> Option<String> {
-    let attribute = get_jsx_element_attribute(jsx_element, "key");
-
-    if let Some(JSXAttrOrSpread::JSXAttr(JSXAttr {
-        value: Some(JSXAttrValue::Lit(Lit::Str(Str { value, .. }))),
-        ..
-    })) = attribute
-    {
-        return Some(value.to_string());
+fn attribute_expression(attr: &JSXAttr) -> Option<&Expr> {
+    match &attr.value {
+        Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {
+            expr: JSXExpr::Expr(expr),
+            ..
+        })) => Some(expr),
+        _ => None,
     }
+}
 
-    None
+pub fn get_condition_expression(element: &JSXElement) -> Expr {
+    if let Some(attr) = get_jsx_element_attribute(element, CONDITION) {
+        if let Some(expr) = attribute_expression(attr) {
+            return expr.clone();
+        }
+    } else {
+        let name = get_jsx_element_name(&element.opening.name);
+        display_error(
+            element.opening.span,
+            &format!("Attribute \"condition\" is required for the <{name}> tag!"),
+        );
+    }
+    Expr::Lit(Lit::Bool(false.into()))
+}
+
+pub fn get_key_attribute(element: &JSXElement) -> Option<Wtf8Atom> {
+    match &get_jsx_element_attribute(element, KEY)?.value {
+        Some(JSXAttrValue::Str(value)) => Some(value.value.clone()),
+        _ => None,
+    }
 }
 
 pub fn validate_jsx_control_statement_attributes(jsx_element: &JSXElement) {
@@ -107,7 +80,7 @@ pub fn validate_jsx_control_statement_attributes(jsx_element: &JSXElement) {
             match attribute {
                 JSXAttrOrSpread::JSXAttr(JSXAttr { name, .. }) => match name {
                     JSXAttrName::Ident(IdentName { sym, span, .. }) => {
-                        if sym != "condition" && sym != "key" {
+                        if sym != CONDITION && sym != KEY {
                             display_error(*span, format!("Unsupported: \"{}\" for <{}>, valid props: \"condition\" and \"key\"!", sym, element_name).as_str());
                         }
                     },
@@ -117,6 +90,8 @@ pub fn validate_jsx_control_statement_attributes(jsx_element: &JSXElement) {
                                                    }) => {
                         display_error(*span, "Unsupported: Namespaced name for JSX control statement tag's prop!");
                     },
+                    #[cfg(swc_ast_unknown)]
+                    _ => panic!("Unsupported JSX attribute name"),
                 },
                 JSXAttrOrSpread::SpreadElement(SpreadElement { dot3_token, .. }) => {
                     display_error(
@@ -124,6 +99,8 @@ pub fn validate_jsx_control_statement_attributes(jsx_element: &JSXElement) {
                         "Unsupported: Spread operator disallowed for JSX control statement tags!",
                     );
                 }
+                #[cfg(swc_ast_unknown)]
+                _ => panic!("Unsupported JSX attribute"),
             }
         });
 }
@@ -131,60 +108,47 @@ pub fn validate_jsx_control_statement_attributes(jsx_element: &JSXElement) {
 pub fn set_jsx_element_attribute(
     jsx_element: &mut JSXElement,
     name: &str,
-    value: String,
+    value: Wtf8Atom,
     rewrite: bool,
 ) {
-    let mut has_attribute = false;
-
-    for attr in jsx_element.opening.attrs.iter_mut() {
-        if let JSXAttrOrSpread::JSXAttr(jsx_attribute) = attr {
-            if let JSXAttr {
-                name: JSXAttrName::Ident(IdentName { sym, .. }),
-                ..
-            } = jsx_attribute
-            {
-                if sym == name {
-                    has_attribute = true;
-
-                    if rewrite {
-                        jsx_attribute.value.replace(JSXAttrValue::Lit(Lit::Str(Str {
-                            value: value.clone().into(),
-                            raw: None,
-                            span: DUMMY_SP,
-                        })));
-                    }
+    let attr_value = JSXAttrValue::Str(Str {
+        span: DUMMY_SP,
+        value,
+        raw: None,
+    });
+    let mut found = false;
+    for attr in &mut jsx_element.opening.attrs {
+        if let JSXAttrOrSpread::JSXAttr(attr) = attr {
+            if matches!(&attr.name, JSXAttrName::Ident(id) if id.sym == name) {
+                if !rewrite {
+                    return;
                 }
+                attr.value = Some(attr_value.clone());
+                found = true;
             }
         }
     }
-
-    if !has_attribute {
-        jsx_element
-            .opening
-            .attrs
-            .push(JSXAttrOrSpread::JSXAttr(JSXAttr {
-                name: JSXAttrName::Ident(IdentName {
-                    span: DUMMY_SP,
-                    sym: name.into(),
-                }),
-                value: Some(JSXAttrValue::Lit(Lit::Str(Str {
-                    value: value.into(),
-                    raw: None,
-                    span: DUMMY_SP,
-                }))),
-                span: DUMMY_SP,
-            }));
+    if found {
+        return;
     }
+    jsx_element
+        .opening
+        .attrs
+        .push(JSXAttrOrSpread::JSXAttr(JSXAttr {
+            span: DUMMY_SP,
+            name: JSXAttrName::Ident(name.into()),
+            value: Some(attr_value),
+        }));
 }
 
 pub fn set_key_attribute_for_expr(
     expr: &mut Expr,
-    key_attribute_value: String,
+    key_attribute_value: Wtf8Atom,
     rewrite_value: bool,
 ) {
     match expr {
         Expr::JSXElement(jsx_element) => {
-            set_jsx_element_attribute(jsx_element, "key", key_attribute_value, rewrite_value);
+            set_jsx_element_attribute(jsx_element, KEY, key_attribute_value, rewrite_value);
         }
         Expr::Array(ArrayLit { elems, .. }) => {
             for (index, elem) in elems.iter_mut().enumerate() {
@@ -194,7 +158,7 @@ pub fn set_key_attribute_for_expr(
 
                         set_jsx_element_attribute(
                             jsx_element,
-                            "key",
+                            KEY,
                             build_key_attribute_value(&key_attribute_value, index),
                             rewrite_value,
                         );
@@ -212,7 +176,7 @@ pub fn set_key_attribute_for_expr(
 
 pub fn set_jsx_child_element_key_attribute(
     jsx_element_child: &mut JSXElementChild,
-    key_attribute_value: String,
+    key_attribute_value: Wtf8Atom,
 ) {
     if key_attribute_value.is_empty() {
         return;
@@ -220,7 +184,7 @@ pub fn set_jsx_child_element_key_attribute(
 
     match jsx_element_child {
         JSXElementChild::JSXElement(value) => {
-            set_jsx_element_attribute(value, "key", key_attribute_value.clone(), false);
+            set_jsx_element_attribute(value, KEY, key_attribute_value.clone(), false);
         }
         JSXElementChild::JSXExprContainer(JSXExprContainer {
             expr: JSXExpr::Expr(expr),
@@ -242,7 +206,7 @@ pub fn throw_not_string_type(jsx_element: &JSXElement, attr_name: &str) {
     display_error(
         jsx_element.opening.span,
         format!(
-            "Attribute \"each\" of <{}> tag must be of type String, e.g. {1}=\"...\"!",
+            "Attribute \"{1}\" of <{}> tag must be of type String, e.g. {1}=\"...\"!",
             element_name, attr_name,
         )
         .as_str(),
@@ -261,63 +225,22 @@ pub fn throw_not_expression_type(jsx_element: &JSXElement, attr_name: &str) {
     );
 }
 
-pub fn get_for_jsx_element_attributes_expr(jsx_element: &JSXElement, attr_name: &str) -> Expr {
-    get_jsx_element_attribute(jsx_element, attr_name)
-        .map(|attr| match attr {
-            JSXAttrOrSpread::JSXAttr(JSXAttr {
-                value:
-                    Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {
-                        expr: JSXExpr::Expr(value),
-                        ..
-                    })),
-                ..
-            }) => (*value).clone(),
-            JSXAttrOrSpread::JSXAttr(JSXAttr { .. }) => {
-                throw_not_expression_type(jsx_element, attr_name);
-
-                Expr::Invalid(Invalid { span: DUMMY_SP })
-            }
-            JSXAttrOrSpread::SpreadElement(value) => {
-                display_error(
-                    value.dot3_token.span(),
-                    format!("Spread is invalid for the value of a {}!", attr_name).as_str(),
-                );
-
-                Expr::Invalid(Invalid { span: DUMMY_SP })
-            }
-        })
-        .unwrap_or(Expr::Invalid(Invalid { span: DUMMY_SP }))
+pub fn get_for_jsx_element_attributes_expr(element: &JSXElement, name: &str) -> Option<Expr> {
+    let attr = get_jsx_element_attribute(element, name)?;
+    let value = attribute_expression(attr);
+    if value.is_none() {
+        throw_not_expression_type(element, name);
+    }
+    value.cloned()
 }
 
-pub fn get_for_jsx_element_attributes_ident(jsx_element: &JSXElement, attr_name: &str) -> Ident {
-    let ctxt = SyntaxContext::empty();
-
-    get_jsx_element_attribute(jsx_element, attr_name)
-        .map(|attr| match attr {
-            JSXAttrOrSpread::JSXAttr(JSXAttr { value, .. }) => match value {
-                Some(JSXAttrValue::Lit(Lit::Str(value))) => {
-                    let sym = value.value;
-
-                    Ident {
-                        span: DUMMY_SP,
-                        sym,
-                        ctxt,
-                        optional: Default::default(),
-                    }
-                }
-                _ => {
-                    throw_not_string_type(jsx_element, attr_name);
-                    Ident::from("_")
-                }
-            },
-            JSXAttrOrSpread::SpreadElement(value) => {
-                display_error(
-                    value.dot3_token.span(),
-                    format!("Spread is invalid for the value of a {}!", attr_name).as_str(),
-                );
-
-                Ident::from("_")
-            }
-        })
-        .unwrap_or(Ident::from("_"))
+pub fn get_for_jsx_element_attributes_ident(element: &JSXElement, name: &str) -> Option<Ident> {
+    let attr = get_jsx_element_attribute(element, name)?;
+    if let Some(JSXAttrValue::Str(value)) = &attr.value {
+        if let Some(sym) = value.value.as_atom() {
+            return Some(Ident::from(sym.clone()));
+        }
+    }
+    throw_not_string_type(element, name);
+    None
 }

@@ -6,7 +6,7 @@ module.exports = class extends React.Component {
             1,
             2,
             3
-        ].map(function(_, _) {
+        ].map(function() {
             return "ABC";
         }, this)}
       </div>;

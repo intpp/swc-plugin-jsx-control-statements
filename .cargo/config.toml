@@ -4,3 +4,6 @@ build-wasm32 = "build --target wasm32-unknown-unknown"
 
 [registries.crates-io]
 protocol = "sparse"
+
+[target.'cfg(target_arch = "wasm32")']
+rustflags = ["--cfg=swc_ast_unknown"]
