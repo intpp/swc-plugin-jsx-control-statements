@@ -14,9 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Night toolchain
-        run: rustup default nightly
-      - name: Run tests (Main)
-        run: cargo test
-      - name: Run tests (Transformer)
-        run: cd transform && cargo test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: rustup target add wasm32-wasip1
+      - run: cargo test --workspace
+      - run: npm pack --pack-destination "$RUNNER_TEMP"
+      - name: Test the packed plugin with TypeScript 6, TypeScript 7 and SWC
+        working-directory: transform/tests/compatibility
+        run: |
+          npm install --no-save "$RUNNER_TEMP"/swc-plugin-jsx-control-statements-*.tgz
+          npm test

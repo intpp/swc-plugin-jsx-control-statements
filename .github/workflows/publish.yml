@@ -13,8 +13,6 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
-      - name: Night toolchain
-        run: rustup default nightly
       - run: rustup target add wasm32-wasip1
       - run: npm install
       - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc

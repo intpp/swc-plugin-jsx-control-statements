@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "module": "NodeNext",
+    "target": "ES2022",
+    "jsx": "react-jsx",
+    "types": ["swc-plugin-jsx-control-statements"]
+  },
+  "include": ["*.tsx"]
+}

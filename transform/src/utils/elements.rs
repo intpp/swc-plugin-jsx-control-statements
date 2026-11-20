@@ -1,3 +1,4 @@
+use swc_core::atoms::{wtf8::Wtf8Buf, Wtf8Atom};
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
     ArrayLit, Expr, ExprOrSpread, JSXElementChild, JSXExpr, JSXExprContainer, JSXText, Lit, Null,
@@ -7,11 +8,34 @@ use tracing::debug;
 
 use crate::utils::attributes::{build_key_attribute_value, set_jsx_child_element_key_attribute};
 
+const NEWLINE: char = '\n';
+
+fn jsx_text_literal(value: &Wtf8Atom) -> Wtf8Atom {
+    let mut content = Wtf8Buf::new();
+    let mut trimmed_len = 0;
+    for point in value.code_points() {
+        let whitespace = point.to_char().is_some_and(char::is_whitespace);
+        if point == NEWLINE || (content.is_empty() && whitespace) {
+            continue;
+        }
+        content.push(point);
+        if !whitespace {
+            trimmed_len = content.len();
+        }
+    }
+    content.truncate(trimmed_len);
+    content.into()
+}
+
+pub fn is_blank_jsx_text(text: &JSXText) -> bool {
+    text.value.as_str().is_some_and(|s| s.trim().is_empty())
+}
+
 pub fn convert_child_to_expression(
     jsx_element_child: &mut JSXElementChild,
-    key_attribute: String,
+    key_attribute: Wtf8Atom,
 ) -> Expr {
-    set_jsx_child_element_key_attribute(jsx_element_child, key_attribute.clone());
+    set_jsx_child_element_key_attribute(jsx_element_child, key_attribute);
 
     match jsx_element_child {
         JSXElementChild::JSXFragment(value) => Expr::JSXFragment((*value).clone()),
@@ -20,26 +44,20 @@ pub fn convert_child_to_expression(
             expr: JSXExpr::Expr(expr),
             ..
         }) => (**expr).clone(),
-        JSXElementChild::JSXText(JSXText { value, .. }) => {
-            let mut content = value.to_string();
-
-            content = content.replace('\n', "");
-
-            Expr::Lit(Lit::Str(Str {
-                span: DUMMY_SP,
-                value: content.trim().into(),
-                raw: None,
-            }))
-        }
+        JSXElementChild::JSXText(JSXText { value, .. }) => Expr::Lit(Lit::Str(Str {
+            span: DUMMY_SP,
+            value: jsx_text_literal(value),
+            raw: None,
+        })),
         _ => Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),
     }
 }
 
 pub fn convert_children_to_expression(
     children: &mut Vec<JSXElementChild>,
-    group_key: Option<String>,
+    group_key: Option<Wtf8Atom>,
 ) -> Expr {
-    let group_key = group_key.unwrap_or("".to_string());
+    let group_key = group_key.unwrap_or_default();
 
     debug!(
         "convert_children_to_expression (length before filter is {})",
@@ -47,13 +65,7 @@ pub fn convert_children_to_expression(
     );
 
     children.retain(|child| match child {
-        JSXElementChild::JSXText(JSXText { value, .. }) => {
-            let mut value = value.to_string();
-
-            value = value.replace('\n', "");
-
-            value.trim() != ""
-        }
+        JSXElementChild::JSXText(text) => !is_blank_jsx_text(text),
         _ => true,
     });
 
@@ -64,7 +76,7 @@ pub fn convert_children_to_expression(
 
     match children.len() {
         0 => Expr::Lit(Lit::Null(Null { span: DUMMY_SP })),
-        1 => convert_child_to_expression(&mut children[0], group_key.clone()), // TODO: add group key if it present and key set manually
+        1 => convert_child_to_expression(&mut children[0], group_key), // TODO: add group key if it present and key set manually
         _ => Expr::Array(ArrayLit {
             span: DUMMY_SP,
             elems: children
@@ -73,7 +85,7 @@ pub fn convert_children_to_expression(
                 .map(|(index, child)| {
                     let key = build_key_attribute_value(&group_key, index);
 
-                    debug!("convert_children_to_expression (len > 1), key = {}", key);
+                    debug!("convert_children_to_expression (len > 1), key = {:?}", key);
 
                     Some(ExprOrSpread {
                         spread: None,

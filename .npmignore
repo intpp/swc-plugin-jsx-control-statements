@@ -9,3 +9,4 @@ transform/
 .gitignore
 Cargo.lock
 Cargo.toml
+.swc/

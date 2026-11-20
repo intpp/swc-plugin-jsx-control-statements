@@ -30,6 +30,37 @@ jsc: {
 },
 ```
 
+## TypeScript
+
+With TypeScript 6 or 7, add the package to `compilerOptions.types` in your
+`tsconfig.json`. Keep any other entries your project uses. The declarations
+use `@types/react` and make the control tags available globally in TSX.
+
+```json
+{
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "types": ["swc-plugin-jsx-control-statements"]
+    }
+}
+```
+
+Use SWC to emit JavaScript and `tsc --noEmit` to check types. The Wasm plugin
+has been tested with `@swc/core` 1.16.20 through 1.16.22. Version 1.15.47
+uses an incompatible plugin ABI.
+
+For a typed loop, use the `body` callback. TypeScript infers the item from
+`of` and the index as `number`. The transform calls `.map()` on the input.
+
+```tsx
+const names = ["Ada", "Grace"] as const;
+const list = <For of={names} body={(name, index) => <span key={name}>{index}. {name}</span>} />;
+```
+
+SWC introduces bindings for string-valued `each` and `index` attributes and
+for `<With>` attributes during emit. TypeScript needs a declaration for those
+names if you reference them in TSX children.
+
 ## Usage
 
 ### `<If>` tag

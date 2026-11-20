@@ -1,12 +1,12 @@
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{CondExpr, JSXElement, JSXElementChild, JSXText, Lit, Null};
+use swc_core::ecma::ast::{CondExpr, JSXElement, JSXElementChild, Lit, Null};
 use swc_core::ecma::ast::{Expr, JSXExpr, JSXExprContainer};
 
 use crate::utils::attributes::{
     get_condition_expression, get_jsx_element_name, get_key_attribute,
     validate_jsx_control_statement_attributes,
 };
-use crate::utils::elements::convert_children_to_expression;
+use crate::utils::elements::{convert_children_to_expression, is_blank_jsx_text};
 use crate::utils::playthings::display_error;
 
 pub fn convert_jsx_element(jsx_element: &mut JSXElement) -> Expr {
@@ -47,12 +47,8 @@ fn parse_choose_jsx_element(
 
     for child in jsx_element.children.iter_mut().rev() {
         match child {
-            JSXElementChild::JSXText(JSXText { value, .. }) => {
-                let mut value = value.to_string();
-
-                value = value.replace('\n', "");
-
-                if value.trim() != "" {
+            JSXElementChild::JSXText(text) => {
+                if !is_blank_jsx_text(text) {
                     display_error(
                         jsx_element.opening.span,
                         "<Condition /> tag should contain at least one <When /> tag.",

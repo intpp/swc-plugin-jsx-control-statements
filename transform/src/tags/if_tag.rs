@@ -1,12 +1,12 @@
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::Expr;
-use swc_core::ecma::ast::{CondExpr, JSXElement, JSXElementChild, JSXText};
+use swc_core::ecma::ast::{CondExpr, JSXElement, JSXElementChild};
 
 use crate::utils::attributes::{
     get_condition_expression, get_jsx_element_name, get_key_attribute,
     validate_jsx_control_statement_attributes,
 };
-use crate::utils::elements::convert_children_to_expression;
+use crate::utils::elements::{convert_children_to_expression, is_blank_jsx_text};
 use crate::utils::playthings::display_error;
 
 pub fn convert_jsx_element(jsx_element: &mut JSXElement) -> Expr {
@@ -30,12 +30,8 @@ fn parse_if_jsx_element(jsx_element: &mut JSXElement) -> (Expr, Expr) {
         .iter()
         .fold(initial, |(cons, alts), child| {
             match child {
-                JSXElementChild::JSXText(JSXText { value, .. }) => {
-                    let mut value = value.to_string();
-
-                    value = value.replace('\n', "");
-
-                    if value.trim() == "" {
+                JSXElementChild::JSXText(text) => {
+                    if is_blank_jsx_text(text) {
                         return (cons, alts);
                     }
                 }
